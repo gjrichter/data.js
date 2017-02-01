@@ -14,8 +14,13 @@ To see a demo click [here](https://gjrichter.github.io/data.js/demo/html/) .
 var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/data/issues.csv";
 var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
 
-    _... your code to use mydata ..._ 
+    // get all values of column 'id' into one array
+    var dataA = mydata.column("id"); 
     
+    // get a new table with selected rows
+    var newTable = mydata.select("WHERE labels like Facebook"); 
+    
+    ...   
 };
 ```
 
