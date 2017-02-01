@@ -2,14 +2,12 @@
 
 To see a demo click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
-
-### Markdown
-
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+### usage
 
 ```markdown
-Syntax highlighted code block
+var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/_data/issues.csv";
+var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
+
 
 # Header 1
 ## Header 2
