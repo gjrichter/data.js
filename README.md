@@ -18,6 +18,7 @@ var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(functi
     
     // get a new table with rows selected by the value of the column 'labels'
     var newTable = mydata.select("WHERE labels like Facebook"); 
+    var items = newTable.table.records;
     
     ...   
 };
