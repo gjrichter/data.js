@@ -23,4 +23,14 @@ var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(functi
     ...   
 };
 ```
+### dependencies
+
+- jquery
+- papaparse CSV parser [GitHub](https://github.com/mholt/PapaParse)
+
+the demo depends also on:
+
+- Bootstrap V3
+- css from Flat Admin V.2 - Free Bootstrap Admin Templates
+
 
