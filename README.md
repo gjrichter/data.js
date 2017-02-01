@@ -1,6 +1,6 @@
 ## data.js
 
-A little javascript lib to load and handle data table
+A little javascript lib to load and handle data tables
 
 Read open formats like csv and json from an url and calls a user defined function on success with a table object.
 The table object has several methods to explore and manipulate the data.
