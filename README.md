@@ -11,7 +11,6 @@ var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(functi
     _... your code to use mydata ..._ 
     
 };
-</script>
 ```
 
 
