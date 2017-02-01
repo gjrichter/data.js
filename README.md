@@ -1,6 +1,6 @@
-## Welcome to GitHub Pages
+## data.js
 
-You can use the [editor on GitHub](https://gjrichter.github.io/data.js/demo/html/) to maintain and preview the content for your website in Markdown files.
+To see a demo click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
 Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
 
