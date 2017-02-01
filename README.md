@@ -9,7 +9,7 @@ To see a **demo** click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
 ### usage sample
 
-`
+```
 var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/data/issues.csv";
 var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
 
@@ -22,7 +22,8 @@ var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(functi
     
     ...   
 };
-`
+```
+
 ### dependencies
 
 - jquery
