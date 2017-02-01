@@ -5,12 +5,11 @@ To see a demo click [here](https://gjrichter.github.io/data.js/demo/html/) .
 ### usage
 
 ```
-<script type="text/javascript" src="data.js"></script>
-<script>
 var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/data/issues.csv";
 var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
 
     _... your code to use mydata ..._ 
+    
 };
 </script>
 ```
