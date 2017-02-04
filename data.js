@@ -61,6 +61,50 @@ $Log:data.js,v $
 		expose();
 	}
 
+	/**
+	 * Create a new Data.Import instance.  
+	 * @class It realizes an object to load and handle internal data sources (CSV,JSON,...)
+	 * @constructor
+	 * @throws 
+	 * @return A new Data.Import object
+	 */
+
+	Data.Object = function (id,options) {
+		this.id = id;
+		this.options = options;
+		this.debug = false;
+		};
+
+	Data.Object.prototype = {
+
+		/**
+		 * @method success
+		 * set data from the specified source and call user function
+		 * @param callback a function to call on success
+		 * @type Data.Import
+		 * @return itself 
+		 */
+		import: function (callback) {
+
+			this.options.success = callback;
+
+			// we create a dummy Data.feed to use its parser
+			var feed = Data.feed("dummy",{});
+
+			// pass options to the Data.feed
+			feed.options = this.options;
+
+			// import json and create table, calls the callback when done
+			feed.__processJsonData(this.options.source,this.options);
+
+			// supports only json objects 
+			// TBD: maybe CSV arrays, text
+
+			return this;
+		}
+	};
+
+
 	/*** how to use
 	var data = Data.feed("arbitrary name"    ,{ source:"filename.csv", type:"csv" }).load();
 	var data = Data.feed("my_broker_function",{ ext:"broker.js" , type:"ext" }).load();
@@ -160,6 +204,14 @@ $Log:data.js,v $
 		return new Data.Feed(id, options);
 	};
 
+	// @factory Data.feed(id: String, options?: Data options)
+	// Instantiates a data object given id == name
+	// and an object literal with `data options`.
+	//
+
+	Data.object = function (id, options) {
+		return new Data.Object(id, options);
+	};
 
 
 	var ixmaps = ixmaps || {};
@@ -465,7 +517,11 @@ $Log:data.js,v $
 	 */
 	Data.Feed.prototype.__processJsonData = function(script,opt) {
 
-		eval("var data = "+script );
+		if ( typeof(script) == "string" ){
+			eval("var data = "+script );
+		}else{
+			var data = script;
+		}
 
 		var dataA = [];
 
@@ -633,6 +689,21 @@ $Log:data.js,v $
 	};
 
 	/**
+	 * get the index of a column by name
+	 * @parameter szColumn the name of the column
+	 * @type int
+	 * @return the index of the column or null
+	 */
+	Data.Table.prototype.columnIndex = function(szColumn){
+		for (i in this.fields )	{
+			if ( this.fields[i].id == szColumn ){
+				return i;
+			}
+		}
+		return null;
+	};
+
+	/**
 	 * extract the values of one column from a data table
 	 * @parameter szColumn the name of the column to extract from loaded data
 	 * @type array
@@ -677,8 +748,6 @@ $Log:data.js,v $
 			return null;
 		}
 
-		this.__subt = new Data.Table;
-
 		var column = null;
 		if (options.source)	{
 			for (var i in this.fields ){
@@ -687,6 +756,11 @@ $Log:data.js,v $
 				}
 			}
 		}
+		if ( column ==	 null ){
+			return null;
+		}
+
+		this.__subt = new Data.Table;
 
 		// make fields (=column names)
 		// ----------------------------------
@@ -716,6 +790,9 @@ $Log:data.js,v $
 			this.__subt.records.push(records);
 			this.__subt.table.records++;
 		}
+		this.table   = this.__subt.table;
+		this.fields  = this.__subt.fields;
+		this.records = this.__subt.records;
 
 		return this.__subt;
 	};
