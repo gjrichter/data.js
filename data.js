@@ -531,7 +531,7 @@ $Log:data.js,v $
 		}
 		dataA.push(row);
 
-		for ( i=1; i<data.length;i++ ){
+		for ( i=0; i<data.length;i++ ){
 			var row = [];
 			for ( a in data[i] ){
 				row.push(data[i][a]);
