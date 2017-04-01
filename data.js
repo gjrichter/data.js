@@ -651,8 +651,6 @@ $Log:data.js,v $
 
 		// deploy the object into the map
 		// ------------------------------
-		console.log(this.dbtable);
-		
 		if ( (typeof(opt) != "undefined") && opt.success ){
 			opt.success(this.dbtable);
 		}
@@ -1436,7 +1434,6 @@ $Log:data.js,v $
 	*/
 		Data.Broker.prototype.getData = function(query){
 			_LOG("dbbroker get data");
-			console.log(this);
 			this.__doCSVImport(query.url,{
 				callback:function(data){
 					query.data = data;
