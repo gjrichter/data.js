@@ -148,8 +148,8 @@ $(function() {
 												   "keep":  ['created_at']
 												});
 
-						var daysA = pivot.column("Total");
-						var dateA = pivot.column("created_at");
+						var daysA = pivot.column("Total").values();
+						var dateA = pivot.column("created_at").values();
 			
 						// get last 7 and 14 days timestamp
 						var d = new Date();
@@ -180,33 +180,35 @@ $(function() {
 						var sdata = mydata.select(dataPath.selection);
 						var records = sdata.table.records;
 
-						// make pivot from this
-						var spivot = sdata.pivot({ "lead":	'date',
-												   "keep":  ['created_at']
-												});
+						if ( records ){
+							// make pivot from this
+							var spivot = sdata.pivot({ "lead":	'date',
+													   "keep":  ['created_at']
+													});
 
-						var daysA = spivot.column("Total");
-						var dateA = spivot.column("created_at");
+							var daysA = spivot.column("Total").values();
+							var dateA = spivot.column("created_at").values();
 
-						// get last 7 and 14 days timestamp
-						var d = new Date();
-						d = new Date(d.getFullYear(),d.getMonth(),d.getDate());
-						var dateplus7  = d.getTime() - (1000*60*60*24 * (7-1));
-						var dateplus14 = d.getTime() - (1000*60*60*24 * (14-1));
+							// get last 7 and 14 days timestamp
+							var d = new Date();
+							d = new Date(d.getFullYear(),d.getMonth(),d.getDate());
+							var dateplus7  = d.getTime() - (1000*60*60*24 * (7-1));
+							var dateplus14 = d.getTime() - (1000*60*60*24 * (14-1));
 
-						// get last 7 and 14 days values
-						var last = 0;
-						var before = 0;
-						var i = 0;
-						while ( new Date(__normalizeTime(dateA[i])).getTime() > dateplus7 ){
-							last += daysA[i++];
+							// get last 7 and 14 days values
+							var last = 0;
+							var before = 0;
+							var i = 0;
+							while ( daysA[i] && new Date(__normalizeTime(dateA[i])).getTime() > dateplus7 ){
+								last += daysA[i++];
+							}
+							while ( daysA[i] && new Date(__normalizeTime(dateA[i])).getTime() > dateplus14 ){
+								before += daysA[i++];
+							}
+							// display sum, last 7 and trend arrow
+							var szArrow = __getArrow(last,before);
+							$(this).html("<span class='pull-left'>"+records+" </span><br><span class='t' style='font-size:0.8em'>"+Math.abs(last)+"<i class='icon fa "+szArrow+"'></i></span> ");
 						}
-						while ( new Date(__normalizeTime(dateA[i])).getTime() > dateplus14 ){
-							before += daysA[i++];
-						}
-						// display sum, last 7 and trend arrow
-						var szArrow = __getArrow(last,before);
-						$(this).html("<span class='pull-left'>"+records+" </span><br><span class='t' style='font-size:0.8em'>"+Math.abs(last)+"<i class='icon fa "+szArrow+"'></i></span> ");
 					}
 				}
 			}
@@ -230,9 +232,9 @@ $(function() {
 
 		// make chart with 2 curves, total and closed issues
 		// -------------------------------------------------
-		var set1  = pivot.column("Total");
-		var set2  = pivot.column("closed");
-		var label = pivot.column("date");
+		var set1  = pivot.column("Total").values();
+		var set2  = pivot.column("closed").values;
+		var label = pivot.column("date").values();
 		
 		if (0){
 			var sum = 0;

@@ -651,6 +651,7 @@ $Log:data.js,v $
 
 		// deploy the object into the map
 		// ------------------------------
+		
 		if ( (typeof(opt) != "undefined") && opt.success ){
 			opt.success(this.dbtable);
 		}
@@ -687,6 +688,21 @@ $Log:data.js,v $
 	};
 
 	/**
+	 * reverse the rows of a data table
+	 * @parameter none
+	 * @type data table
+	 * @return the reversed table
+	 */
+	Data.Table.prototype.reverse = function(){
+		var records = [];
+		for ( var i=this.records.length-1; i>=0; i-- )	{
+			records.push(this.records[i]);
+		}
+		this.records = records;
+		return this;
+	};
+
+	/**
 	 * get the index of a column by name
 	 * @parameter szColumn the name of the column
 	 * @type int
@@ -707,14 +723,13 @@ $Log:data.js,v $
 	 * @type array
 	 * @return column values or null
 	 */
-	Data.Table.prototype.column= function(szColumn){
+	Data.Table.prototype.column= function(szColumn){ 
 		for (i in this.fields )	{
 			if ( this.fields[i].id == szColumn ){
-				var columnA = [];
-				for ( ii in this.records ){
-					columnA.push(this.records[ii][i]);
-				}
-				return columnA;
+				var column = new Data.Column();
+				column.index = i;
+				column.table = this;
+				return column;
 			}
 		}
 		return null;
@@ -828,10 +843,12 @@ $Log:data.js,v $
 						filterObj = {};
 						filterObj.szSelectionField = szFieldA[1];
 						szFieldA = szFieldA[2].split(' ');
-						filterObj.szSelectionOp = szFieldA[1];
-						filterObj.szSelectionValue = szFieldA[2].replace('.','\\.').replace(/\//gi,'\\/');
-						if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[3] == "AND") ){
-							filterObj.szSelectionValue2 = szFieldA[4].replace('.','\\.').replace(/\//gi,'\\/');
+						if ( szFieldA.length >= 2 ){
+							filterObj.szSelectionOp = szFieldA[1];
+							filterObj.szSelectionValue = szFieldA[2].replace('.','\\.').replace(/\//gi,'\\/');
+							if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[3] == "AND") && (szFieldA.length >= 4) ){
+								filterObj.szSelectionValue2 = szFieldA[4].replace('.','\\.').replace(/\//gi,'\\/');
+							}
 						}
 					}else
 					// GR 20.05.2016 field defined by: "name"
@@ -840,20 +857,24 @@ $Log:data.js,v $
 						filterObj = {};
 						filterObj.szSelectionField = szFieldA[1];
 						szFieldA = szFieldA[2].split(' ');
-						filterObj.szSelectionOp = szFieldA[1];
-						filterObj.szSelectionValue = szFieldA[2].replace('.','\\.').replace(/\//gi,'\\/');
-						if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[3] == "AND") ){
-							filterObj.szSelectionValue2 = szFieldA[4].replace('.','\\.').replace(/\//gi,'\\/');
+						if ( szFieldA.length >= 2 ){
+							filterObj.szSelectionOp = szFieldA[1];
+							filterObj.szSelectionValue = szFieldA[2].replace('.','\\.').replace(/\//gi,'\\/');
+							if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[3] == "AND")  && (szFieldA.length >= 4) ){
+								filterObj.szSelectionValue2 = szFieldA[4].replace('.','\\.').replace(/\//gi,'\\/');
+							}
 						}
 					}else{
 					// GR 20.05.2016 field defined by: name
 						szFieldA = szPartsA[i].split(' ');
 						filterObj = {};
-						filterObj.szSelectionField = szFieldA[1];
-						filterObj.szSelectionOp = szFieldA[2];
-						filterObj.szSelectionValue = szFieldA[3].replace('.','\\.').replace(/\//gi,'\\/');
-						if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[4] == "AND") ){
-							filterObj.szSelectionValue2 = szFieldA[5].replace('.','\\.').replace(/\//gi,'\\/');
+						if ( szFieldA.length >= 3 ){
+							filterObj.szSelectionField = szFieldA[1];
+							filterObj.szSelectionOp = szFieldA[2];
+							filterObj.szSelectionValue = szFieldA[3].replace('.','\\.').replace(/\//gi,'\\/');
+							if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[4] == "AND") && (szFieldA.length >= 5) ){
+								filterObj.szSelectionValue2 = szFieldA[5].replace('.','\\.').replace(/\//gi,'\\/');
+							}
 						}
 					}
 					for ( var ii=0; ii<this.fields.length; ii++ ){
@@ -865,6 +886,15 @@ $Log:data.js,v $
 				}
 			}
 			this.selection = new Data.Table;
+
+			for ( i in this.filterQueryA ){
+				if ( typeof this.filterQueryA[i].nFilterFieldIndex === "undefined" ){
+					this.selection.fields = this.fields;
+					this.selection.table.fields = this.table.fields;
+					_LOG("Selection: invalid query: "+szSelection);
+					return this.selection;
+				}
+			}
 
 			for ( j in this.records ){
 
@@ -1264,6 +1294,54 @@ $Log:data.js,v $
 		return this.__subt;
 	};
 
+	/**
+	 * Create a new Data.Column instance.  
+	 * @class It realizes an object to hold a table column
+	 * @constructor
+	 * @throws 
+	 * @return A new Data.Column object
+	 */
+
+	Data.Column = function () {
+		this.table = null;
+		this.index = null;
+		this.valueA = null;
+		};
+
+	/**
+	 * get the values of one column
+	 * <br>
+	 * @type array
+	 * @return the values of a column in an array
+	 */
+	Data.Column.prototype.values = function(){
+		this.valueA = [];
+		for ( i in this.table.records ){
+			this.valueA.push(this.table.records[i][this.index]);
+		}
+		return this.valueA;
+	};
+
+	/**
+	 * map the values of one column
+	 * <br>
+	 * @parameter callback the user creation function
+	 * @type void
+	 * @return true
+	 */
+	Data.Column.prototype.map = function(callback){
+
+		// make new record values 
+		// ----------------------
+		for ( j in this.table.records ){
+			// query new column value by callback
+			this.table.records[j][this.index] = callback(this.table.records[j][this.index]);
+		}
+
+		return true;
+	};
+
+
 
 	// ----------------------------------------------------
 	// W R A P  Data.Table  functions to Data.Feed objectr
@@ -1275,17 +1353,8 @@ $Log:data.js,v $
 	 * @type array
 	 * @return column values array or null
 	 */
-	Data.Feed.prototype.column= function(szColumn){
-		for (i in this.dbtable.fields )	{
-			if ( this.dbtable.fields[i].id == szColumn ){
-				var columnA = [];
-				for ( ii in this.dbtable.records ){
-					columnA.push(this.dbtable.records[ii][i]);
-				}
-				return columnA;
-			}
-		}
-		return null;
+	Data.Feed.prototype.column = function(szColumn){ 
+		return this.dbtable.column(szColumn);
 	};
 
 	/**
@@ -1316,6 +1385,16 @@ $Log:data.js,v $
 	 */
 	Data.Feed.prototype.revert= function(){
 		return this.dbtable.revert();
+	};
+
+	/**
+	 * reverse 
+	 * @parameter void
+	 * @type feed
+	 * @return the reversed feed
+	 */
+	Data.Feed.prototype.reverse = function(){
+		return this.dbtable.reverse();
 	};
 
 	/**
