@@ -14,7 +14,7 @@ var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/mas
 var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
 
     // get all values of column 'id' into one array
-    var dataA = mydata.column("id"); 
+    var dataA = mydata.column("id").values(); 
     
     // get a new table with rows selected by the value of the column 'labels'
     var newTable = mydata.select("WHERE labels like Facebook"); 
