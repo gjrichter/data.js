@@ -169,6 +169,9 @@ $Log:data.js,v $
 				if ( (option.type == "csv") || (option.type == "CSV") ){
 					this.__doCSVImport(szUrl,option);
 				}else
+				if ( (option.type == "rss") || (option.type == "RSS") ){
+					this.__doRSSImport(szUrl,option);
+				}else
 				if ( (option.type == "json") || (option.type == "JSON") || (option.type == "Json")){
 					this.__doJSONImport(szUrl,option);
 				}else
@@ -485,6 +488,141 @@ $Log:data.js,v $
 	};
 
 	// ---------------------------------
+	// R S S
+	// ---------------------------------
+
+	/**
+	 * __doRSSImport 
+	 * reads RSS feed from URL
+	 * parses the data into a table
+	 * @param szUrl rss feed url
+	 * @param opt optional options
+	 * @type void
+	 */
+	Data.Feed.prototype.__doRSSImport = function(szUrl,opt) {
+
+		_LOG("__doRSSImport: "+szUrl);
+		var _this = this;
+
+		opt.format = "xml";
+
+		$.ajax({
+			type: "GET",
+			url: szUrl,
+			dataType: "xml",
+			success: function(data) {
+			_this.__processRSSData
+				(data,opt);
+			},
+			error: function() {
+				alert("\"" + szUrl + "\" could not be loaded!");
+			}
+		});
+
+	};
+
+	/**
+	 * __processRSSData 
+	 * parse the loaded RSS xml data and create data object
+	 * @param the rss object
+	 * @param opt optional options
+	 * @type void
+	 */
+	Data.Feed.prototype.__processRSSData = function(data,opt) {
+
+		if ( opt.format == "xml" ) {
+
+			var layerset = null;
+			var layer = null;
+			var fonte = null;
+
+			if ( $(data).find('rss').length ){
+				this.__parseRSSData(data,opt);
+			}else
+			if ( $(data).find('feed').length ){
+				alert("feed not yet supported");
+			}else
+			if ( $(data).find('atom').length ){
+				alert("atom not yet supported");
+			}
+		}
+	};
+
+		$.fn.filterNode = function(name) {
+			return this.find('*').filter(function() {
+				return this.nodeName === name;
+			});
+		};
+
+		$.fn.filterNodeGetFirst = function(name) {
+			return this.filterNode(name).first().text();
+		};
+	/**
+	 * __parseRSSData 
+	 * parse the loaded RSS xml data and create data object
+	 * @param the rss object
+	 * @param opt optional options
+	 * @type void
+	 */
+	Data.Feed.prototype.__parseRSSData = function(data,opt){
+
+		var _this = this;
+
+		if ( opt.format == "xml" ) {
+
+			var layerset = null;
+			var layer = null;
+			var fonte = null;
+
+			var channelLat = null;
+			var channelLng = null;
+
+			var version = $(data).find('rss').attr("version");
+
+			$(data).find('channel').each(function(){
+
+				var dataA = [];
+				var count = 0;
+				var childNamesA = null;
+
+				$(data).find('item').each(function(){
+
+					// get item fieldnames from the first item of the channel
+					// ------------------------------------------------------
+					if ( !childNamesA ){ 
+						var check = [];
+						childNamesA = [];
+						var childs = $(this).children();
+						for (i=0; i<childs.length; i++)	{
+							var szNode = $(this).children()[i].nodeName;
+							while ( check[szNode] ){
+								szNode += "*";
+							}
+							check[szNode] = szNode;
+							childNamesA[i] = szNode;
+						}
+
+						dataA.push(childNamesA);
+					}
+
+					// make one item values
+					var row = [];
+					for (i=0; i<childNamesA.length; i++){
+						if ( childNamesA[i] == "enclosure" ){
+							row.push(($(this).find(childNamesA[i]+':first').attr("url"))||"");
+						}else{
+							row.push(($(this).find(childNamesA[i]+':first').text())||"");
+						}
+					}
+					dataA.push(row);
+				});
+
+				_this.__createDataTableObject(dataA,"rss",opt);
+			});
+		}
+	};
+
+	// ---------------------------------
 	// J S O N  
 	// ---------------------------------
 
@@ -553,8 +691,6 @@ $Log:data.js,v $
 	 * @type void
 	 */
 	Data.Feed.prototype.__createDataTableObject = function(dataA,szType,opt){
-
-		_LOG("__createDataTableObject:");
 
 		var zValues = 0;
 		var nValues = 0;
