@@ -16,7 +16,7 @@ $Log:data.js,v $
 /** 
  * @fileoverview This file provides the data object to load, parse and cache data tables 
  * @author Guenter Richter guenter.richter@gmx.de
- * @version 0.1
+ * @version 1.1
  */
 
 (function (window, document, undefined) {
@@ -33,7 +33,7 @@ $Log:data.js,v $
 
 
 	var Data = {
-		version: "1.0"
+		version: "1.1"
 	};
 
 	function expose() {
@@ -140,15 +140,13 @@ $Log:data.js,v $
 			var option = this.options;
 			var szUrl = option.source || option.src || option.url;
 
-			var _this = this;
+			var __this = this;
 			if ( option.type == "ext" ){
 				$.getScript(option.ext)
 					.done(function(script, textStatus) {
-					  _this.__createDataTableObjectExt(null,option.type,option);
+					  __this.__createDataTableObjectExt(null,option.type,option);
 					})
 					.fail(function(jqxhr, settings, exception) {
-					console.log(jqxhr);
-					console.log(exception);
 					  alert("external data provider: '"+option.ext+"' could not be loaded !",2000);
 					});
 			}else{
@@ -167,7 +165,14 @@ $Log:data.js,v $
 					this.__doFTImportNew(szUrl,option);
 				}else
 				if ( (option.type == "csv") || (option.type == "CSV") ){
-					this.__doCSVImport(szUrl,option);
+					$.getScript("http://cdn.ixmaps.com/ixmaps/ui/libs/csv/papaparse.min.js")
+					.done(function(script, textStatus) {
+					  __this.__doCSVImport(szUrl,option);
+					  return;
+					})
+					.fail(function(jqxhr, settings, exception) {
+					  alert("'"+option.type+"' unknown format !");
+					});
 				}else
 				if ( (option.type == "rss") || (option.type == "RSS") ){
 					this.__doRSSImport(szUrl,option);
@@ -181,7 +186,7 @@ $Log:data.js,v $
 				if ( (option.type == "jsonstat") || (option.type == "JSONSTAT") ){
 					$.getScript("http://json-stat.org/lib/json-stat.js")
 					.done(function(script, textStatus) {
-					  this.__doLoadJSONstat(szUrl,option);
+					  __this.__doLoadJSONstat(szUrl,option);
 					  return;
 					})
 					.fail(function(jqxhr, settings, exception) {
@@ -319,27 +324,44 @@ $Log:data.js,v $
 	 */
 	Data.Feed.prototype.__doLoadJSONstat = function(szUrl,opt) {
 
+		var __this = this;
+
 		JSONstat( szUrl, 
 			function(){
-				var newData = new Array();
-				var row = this.Dataset(0).Dimension(2).id;
-				row.unshift( this.Dataset(0).Dimension(1).label );
-				newData.push(row);
-				for (var i=0; i<this.Dataset(0).Dimension(1).length; i++ ){
-					var row = new Array();
-					row.push(this.Dataset(0).Dimension(1).id[i]);
-					for (var ii=0; ii<this.Dataset(0).Dimension(2).length; ii++ ){
-						row.push(this.Dataset(0).Data([0,i,ii]).value);
-					}
-					newData.push(row);
+
+				var dataA = new Array();
+
+				// for now we take dimension 0 and 1
+				// 0 for the y axis = first column
+				// 1 for the x axis = values columns
+
+				// first row = column names
+				//
+				var row = [this.Dataset(0).Dimension(0).label];
+				var index = this.Dataset(0).Dimension(1).id;
+				for ( i=0; i<index.length; i++ ){
+					row.push(this.Dataset(0).Dimension(1).Category(index[i]).label);
 				}
+				dataA.push(row);
+
+				// data rows
+				//
+				for (var i=0; i<this.Dataset(0).Dimension(0).length; i++ ){
+					var row = new Array();
+					row.push(this.Dataset(0).Dimension(0).Category(this.Dataset(0).Dimension(0).id[i]).label);
+					for (var ii=0; ii<this.Dataset(0).Dimension(1).length; ii++ ){
+						row.push(this.Dataset(0).Data([i,ii]).value);
+					}
+						dataA.push(row);
+				}
+
 			// user defined callback
 			if ( opt.callback ){
-				opt.callback(newData,opt);
+				opt.callback(dataA,opt);
 				return;
 			}
 			// called by a theme 
-				this.__createDataTableObject(newData,opt.type,opt);
+				__this.__createDataTableObject(dataA,opt.type,opt);
 			}
 		);
 	}
@@ -359,19 +381,21 @@ $Log:data.js,v $
 	Data.Feed.prototype.__doJsonDBImport = function(szUrl,opt) {
 
 		_LOG("__doJsonDBImport: "+szUrl);
+		var __this = this;
 
 		opt.url = szUrl;
 
 		$.getScript(szUrl+".gz")
 			.done(function(script, textStatus) {
-			  this.__processJsonDBData(script,opt);
+			  __this.__processJsonDBData(script,opt);
 			})
 			.fail(function(jqxhr, settings, exception) {
 				$.getScript(szUrl)
 				.done(function(script, textStatus) {
-				  this.__processJsonDBData(script,opt);
+				  __this.__processJsonDBData(script,opt);
 				})
 				.fail(function(jqxhr, settings, exception) {
+					alert(exception);
 				  alert("external data: '"+szUrl+"' could not be loaded !",2000);
 				});
 			});
@@ -385,11 +409,25 @@ $Log:data.js,v $
 		// ------------------
 		this.dbtable = new Data.Table();
 
-		var loadedTable = eval("opt.name");
+		var name = opt.source.split(/\//).pop();
+		name = name.split(/\./)[0];
+		var loadedTable = eval(name);
 
 		this.dbtable.table   = loadedTable.table;
 		this.dbtable.fields  = loadedTable.fields;
 		this.dbtable.records = loadedTable.records;
+
+		// user defined callback
+		if ( opt.callback ){
+			opt.callback(newData,opt);
+			return;
+		}
+
+		// deploy the object into the map
+		// ------------------------------
+		if ( (typeof(opt) != "undefined") && opt.success ){
+			opt.success(this.dbtable);
+		}
 	};
 
 
@@ -408,14 +446,14 @@ $Log:data.js,v $
 	Data.Feed.prototype.__doCSVImport = function(szUrl,opt) {
 
 		_LOG("__doCSVImport: "+szUrl);
-		var _this = this;
+		var __this = this;
 
 		$.ajax({
 			type: "GET",
 			url: szUrl,
 			dataType: "text",
 			success: function(data) {
-			  _this.__processCSVData
+			  __this.__processCSVData
 				  (data,opt);
 			},
 			error: function() {
@@ -444,6 +482,7 @@ $Log:data.js,v $
 		// GR 21.07.2016 if autodecet delimiter fails, try first ; and then ,   
 
 		var newData = Papa.parse(csv).data;
+
 		if ( newData[0].length != newData[1].length ){
 			_LOG("csv parser: autodetect failed");
 			_LOG("csv parser: delimiter = ;");
@@ -502,7 +541,7 @@ $Log:data.js,v $
 	Data.Feed.prototype.__doRSSImport = function(szUrl,opt) {
 
 		_LOG("__doRSSImport: "+szUrl);
-		var _this = this;
+		var __this = this;
 
 		opt.format = "xml";
 
@@ -511,7 +550,7 @@ $Log:data.js,v $
 			url: szUrl,
 			dataType: "xml",
 			success: function(data) {
-			_this.__processRSSData
+			__this.__processRSSData
 				(data,opt);
 			},
 			error: function() {
@@ -566,7 +605,7 @@ $Log:data.js,v $
 	 */
 	Data.Feed.prototype.__parseRSSData = function(data,opt){
 
-		var _this = this;
+		var __this = this;
 
 		if ( opt.format == "xml" ) {
 
@@ -593,7 +632,7 @@ $Log:data.js,v $
 						var check = [];
 						childNamesA = [];
 						var childs = $(this).children();
-						for (i=0; i<childs.length; i++)	{
+						for (var i=0; i<childs.length; i++)	{
 							var szNode = $(this).children()[i].nodeName;
 							while ( check[szNode] ){
 								szNode += "*";
@@ -607,7 +646,7 @@ $Log:data.js,v $
 
 					// make one item values
 					var row = [];
-					for (i=0; i<childNamesA.length; i++){
+					for (var i=0; i<childNamesA.length; i++){
 						if ( childNamesA[i] == "enclosure" ){
 							row.push(($(this).find(childNamesA[i]+':first').attr("url"))||"");
 						}else{
@@ -617,7 +656,7 @@ $Log:data.js,v $
 					dataA.push(row);
 				});
 
-				_this.__createDataTableObject(dataA,"rss",opt);
+				__this.__createDataTableObject(dataA,"rss",opt);
 			});
 		}
 	};
@@ -636,10 +675,10 @@ $Log:data.js,v $
 	 */
 	Data.Feed.prototype.__doJSONImport = function(szUrl,opt) {
 
-		var _this = this;
+		var __this = this;
 		$.get(szUrl,
 			function(data){
-				_this.__processJsonData(data,opt);
+				__this.__processJsonData(data,opt);
 			}).fail(function(e) { 
 				alert('loading error with:'+szUrl);
 			});
@@ -660,18 +699,19 @@ $Log:data.js,v $
 		}else{
 			var data = script;
 		}
+		this.data = data;
 
 		var dataA = [];
 
 		var row = [];
-		for ( a in data[0] ){
+		for ( var a in data[0] ){
 			row.push(a);
 		}
 		dataA.push(row);
 
-		for ( i=0; i<data.length;i++ ){
+		for ( var i=0; i<data.length;i++ ){
 			var row = [];
-			for ( a in data[i] ){
+			for ( var a in data[i] ){
 				row.push(data[i][a]);
 			}
 			dataA.push(row);
@@ -772,7 +812,7 @@ $Log:data.js,v $
 
 		// get all values we want 
 		// loop over countries
-		for ( i=1; i<dataA.length; i++ ){
+		for ( var i=1; i<dataA.length; i++ ){
 			// add one record
 			var valuesA = new Array ();
 			for ( var a in dataA[i] ){
@@ -801,12 +841,18 @@ $Log:data.js,v $
 	 * @return A new Data.Table object
 	 */
 
-	Data.Table = function () {
-		this.table = {records:0,
-					  fields:0};
-		this.fields = [];
-		this.records = [];
-		};
+	Data.Table = function (table) {
+		if (table){
+			this.table = table.table;
+			this.fields = table.fields;
+			this.records = table.records;
+ 		}else{
+			this.table = {records:0,
+						  fields:0};
+			this.fields = [];
+			this.records = [];
+		}
+	};
 
 	/**
 	 * revert the rows of a data table
@@ -839,13 +885,26 @@ $Log:data.js,v $
 	};
 
 	/**
+	 * get an array of the column names
+	 * @type array
+	 * @return an array with the field names
+	 */
+	Data.Table.prototype.columnNames = function(){
+		var fieldsA = [];
+		for (var i in this.fields )	{
+			fieldsA.push(this.fields[i].id);
+		}
+		return fieldsA;
+	};
+
+	/**
 	 * get the index of a column by name
 	 * @parameter szColumn the name of the column
 	 * @type int
 	 * @return the index of the column or null
 	 */
 	Data.Table.prototype.columnIndex = function(szColumn){
-		for (i in this.fields )	{
+		for (var i in this.fields )	{
 			if ( this.fields[i].id == szColumn ){
 				return i;
 			}
@@ -854,13 +913,13 @@ $Log:data.js,v $
 	};
 
 	/**
-	 * extract the values of one column from a data table
+	 * get a column object for a data column defined by name
 	 * @parameter szColumn the name of the column to extract from loaded data
 	 * @type array
 	 * @return column values or null
 	 */
 	Data.Table.prototype.column= function(szColumn){ 
-		for (i in this.fields )	{
+		for (var i in this.fields )	{
 			if ( this.fields[i].id == szColumn ){
 				var column = new Data.Column();
 				column.index = i;
@@ -868,6 +927,7 @@ $Log:data.js,v $
 				return column;
 			}
 		}
+		alert("data.js: '"+szColumn+"' not found!");
 		return null;
 	};
 
@@ -904,9 +964,10 @@ $Log:data.js,v $
 					column = i;
 				}
 			}
-		}
-		if ( column ==	 null ){
-			return null;
+			if ( column == null ){
+				alert("data.js: "+options.source+" not found!");
+				return null;
+			}
 		}
 
 		this.__subt = new Data.Table;
@@ -925,7 +986,7 @@ $Log:data.js,v $
 
 		// make records 
 		// ------------------
-		for ( j in this.records ){
+		for ( var j in this.records ){
 			var records = [];
 
 			// copy orig values 
@@ -960,70 +1021,76 @@ $Log:data.js,v $
 			// get query parts
 
 			if ( 1 ){
-				
-				var szPartsA = szSelection.split('AND');
-				var szFieldA = [];
-				var filterObj = {};
 
-				// test if BETWEEN x AND y
-				if ( (szPartsA.length > 1) && (szPartsA[1].split(' ').length < 3) ){
-					szPartsA = [szSelection];
+				// tokenize
+				// ---------
+				var szTokenA = szSelection.split('WHERE ')[1].split(' ');
+
+				// test for quotes and join the included text parts
+				for ( var ii=0; ii<szTokenA.length; ii++ ){
+					if ( (szTokenA[ii][0] == '"') && (szTokenA[ii][szTokenA[ii].length-1] != '"') ){
+						do{
+							szTokenA[ii] = szTokenA[ii] + " " + szTokenA[ii+1];
+							szTokenA.splice(ii+1,1);
+						}
+						while (szTokenA[ii][szTokenA[ii].length-1] != '"');
+					}
 				}
 				this.filterQueryA = [];
+				var	filterObj = {};
 
-				for ( i=0; i<szPartsA.length; i++ ){
+				// make the query object(s)
+				// ------------------------
+				do {
+					var nToken = 0;
 
-					// GR 20.05.2016 field defined by: 'name'
-					if ( szPartsA[i].match(/\'/) ){
-						szFieldA = szPartsA[i].split("\'");
+					if ( szTokenA.length >= 3 ){
 						filterObj = {};
-						filterObj.szSelectionField = szFieldA[1];
-						szFieldA = szFieldA[2].split(' ');
-						if ( szFieldA.length >= 2 ){
-							filterObj.szSelectionOp = szFieldA[1];
-							filterObj.szSelectionValue = szFieldA[2].replace('.','\\.').replace(/\//gi,'\\/');
-							if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[3] == "AND") && (szFieldA.length >= 4) ){
-								filterObj.szSelectionValue2 = szFieldA[4].replace('.','\\.').replace(/\//gi,'\\/');
+						filterObj.szSelectionField = szTokenA[0].replace(/("|)/g, "");
+						filterObj.szSelectionOp	= szTokenA[1];
+						filterObj.szSelectionValue = szTokenA[2].replace(/("|)/g, "");
+						nToken = 3;
+					}
+					if ( filterObj.szSelectionOp == "BETWEEN" ){
+						if ( szTokenA.length >= 5 ){
+							if ( szTokenA[3] == "AND" ){
+								filterObj.szSelectionValue2 = szTokenA[4];
+								nToken = 5;
 							}
 						}
-					}else
-					// GR 20.05.2016 field defined by: "name"
-					if ( szPartsA[i].match(/\"/) ){
-						szFieldA = szPartsA[i].split("\"");
-						filterObj = {};
-						filterObj.szSelectionField = szFieldA[1];
-						szFieldA = szFieldA[2].split(' ');
-						if ( szFieldA.length >= 2 ){
-							filterObj.szSelectionOp = szFieldA[1];
-							filterObj.szSelectionValue = szFieldA[2].replace('.','\\.').replace(/\//gi,'\\/');
-							if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[3] == "AND")  && (szFieldA.length >= 4) ){
-								filterObj.szSelectionValue2 = szFieldA[4].replace('.','\\.').replace(/\//gi,'\\/');
+					}
+
+					if ( nToken ){
+
+						// get data table column index for query field
+						for ( var ii=0; ii<this.fields.length; ii++ ){
+							if ( this.fields[ii].id == filterObj.szSelectionField ){
+								filterObj.nFilterFieldIndex = ii;
 							}
 						}
+						// add the query object
+						this.filterQueryA.push(filterObj);
+						szTokenA.splice(0,nToken);
+
 					}else{
-					// GR 20.05.2016 field defined by: name
-						szFieldA = szPartsA[i].split(' ');
-						filterObj = {};
-						if ( szFieldA.length >= 3 ){
-							filterObj.szSelectionField = szFieldA[1];
-							filterObj.szSelectionOp = szFieldA[2];
-							filterObj.szSelectionValue = szFieldA[3].replace('.','\\.').replace(/\//gi,'\\/');
-							if ( (filterObj.szSelectionOp == "BETWEEN") && (szFieldA[4] == "AND") && (szFieldA.length >= 5) ){
-								filterObj.szSelectionValue2 = szFieldA[5].replace('.','\\.').replace(/\//gi,'\\/');
-							}
-						}
+						alert("data.js - selection error - incomplete query!\nquery: "+szSelection);
+						break;
 					}
-					for ( var ii=0; ii<this.fields.length; ii++ ){
-						if ( this.fields[ii].id == filterObj.szSelectionField ){
-							filterObj.nFilterFieldIndex = ii;
-						}
+					
+					// only 'AND' combination (OR tdb)
+					if ( szTokenA.length && (szTokenA[0] == "AND") ){
+						szTokenA.splice(0,1);
+					}else{
+						break;
 					}
-					this.filterQueryA.push(filterObj);
 				}
+				while (szTokenA.length);
+				
 			}
+
 			this.selection = new Data.Table;
 
-			for ( i in this.filterQueryA ){
+			for ( var i in this.filterQueryA ){
 				if ( typeof this.filterQueryA[i].nFilterFieldIndex === "undefined" ){
 					this.selection.fields = this.fields;
 					this.selection.table.fields = this.table.fields;
@@ -1032,11 +1099,11 @@ $Log:data.js,v $
 				}
 			}
 
-			for ( j in this.records ){
+			for ( var j in this.records ){
 
 				var allResult = true;
 
-				for ( i in this.filterQueryA ){
+				for ( var i in this.filterQueryA ){
 
 					var result = true;
 					// get the value to test
@@ -1047,7 +1114,7 @@ $Log:data.js,v $
 
 					// do the query 
 					// ------------
-					var nValue = parseFloat(this.__szValue);
+					var nValue = __scanValue(this.__szValue);
 					if ( this.__szSelectionOp == "=" ){
 						if ( this.__szSelectionValue == '*' ){
 							result = (this.__szValue.replace(/ /g,"") != "");
@@ -1071,10 +1138,10 @@ $Log:data.js,v $
 						result = ( nValue <= Number(this.__szSelectionValue) );
 					}else
 					if ( this.__szSelectionOp == "LIKE" ){
-						result = eval("this.__szValue.match(/"+this.__szSelectionValue+"/i)");
+						result = eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
 					}else
 					if ( this.__szSelectionOp == "NOT" ){
-						result = !eval("this.__szValue.match(/"+this.__szSelectionValue+"/i)");
+						result = !eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
 					}else
 					if ( this.__szSelectionOp == "IN" ){
 						result = eval("this.__szSelectionValue.match(/\\("+this.__szValue+"\\,/)") || 
@@ -1087,7 +1154,7 @@ $Log:data.js,v $
 								   (nValue <= Number(this.__szSelectionValue2)) );
 					}else {
 					// default operator	
-						result = eval("this.__szValue.match(/"+this.__szSelectionValue+"/i)");
+						result = eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
 					}
 					allResult = (allResult && result);
 				}
@@ -1103,16 +1170,55 @@ $Log:data.js,v $
 	};
 
 
+	//...................................................................
+	// local helper
+	//...................................................................
 	__myNumber = function(value){
 		var number = parseFloat(value.replace(/\./g,"").replace(/\,/g,"."));
 		return isNaN(number)?0:number;
 	};
 
+	__scanValue = function(nValue){
+		// strips blanks inside numbers (e.g. 1 234 456 --> 1234456)
+		if ( String(nValue).match(/,/) ){
+			var number = parseFloat(String(nValue).replace(/\./gi,"").replace(/,/gi,"."));
+			return isNaN(number)?0:number;
+		}else{
+			var number = parseFloat(String(nValue).replace(/ /gi,""));
+			return isNaN(number)?0:number;
+		}
+	 };
+
 	/**
-	 * select rows from a dbtable objects data by SQL query
-	 * @parameter szSelection the selection query string
+	 * aggregate values of one column for the unique values of 1 or more other columns
+	 * @parameter szColumn the value source
+	 * @parameter szAggregate the aggregation leads
 	 * @type Data.Table
-	 * @return Data.Table object with the selection result in dbTable format
+	 * @return Data.Table object with the aggregation result in dbTable format
+	 * <br><br>
+	 * <strong>example:</strong>
+	 *      myData.aggregate("value","month|type")
+	 *	<br>
+	 *  "value"     : the value source column is named "value"
+	 *  "month|type": columns "month" and "type" will lead the aggregation
+	 *
+	 *  if the source table is like:
+	 *
+	 *  data       month day hour operator type value
+	 *  2015/07/15 jul   15  03   everyone wood 15  
+	 *  2015/07/15 jul   15  06   clerk    iron 25  
+	 *  2015/07/16 jul   16  11   clerk    iron 32  
+	 *  2015/07/22 jul   16  15   carp     wood 17  
+	 *  2015/08/02 aug   02  22   carp     wood 22  
+	 *  ...
+	 *
+	 *  the result will be:
+	 *
+	 *  month type value
+	 *  jul   wood 32
+	 *  jul   iron 57 
+	 *  aug   wood 22 
+	 *
 	 */
 	Data.Table.prototype.aggregate = function(szColumn,szAggregate){
 
@@ -1135,23 +1241,23 @@ $Log:data.js,v $
 		this.aggregation = new Data.Table;
 
 		xRecords = [];
-		for ( j in this.records ){
+		for ( var j in this.records ){
 			xField = ""
-			for ( i=0; i<nAggregateIndexA.length; i++ ){
+			for ( var i=0; i<nAggregateIndexA.length; i++ ){
 				xField += this.records[j][nAggregateIndexA[i]];
 			}
 			if ( xRecords[xField] ){
-				xRecords[xField][nAggregateIndexA.length] += __myNumber(this.records[j][nValueIndex]);
+				xRecords[xField][nAggregateIndexA.length] += __scanValue(this.records[j][nValueIndex]);
 			}else{
 				xRecords[xField] = [];
-				xRecords[xField][nAggregateIndexA.length] = __myNumber(this.records[j][nValueIndex]);
+				xRecords[xField][nAggregateIndexA.length] = __scanValue(this.records[j][nValueIndex]);
 				for ( var i=0; i<nAggregateIndexA.length; i++ ){
 					xRecords[xField][i] = this.records[j][nAggregateIndexA[i]];
 				}
 			}
 		}
 
-		for ( j in xRecords ){
+		for ( var j in xRecords ){
 			this.aggregation.records.push(xRecords[j]);
 			this.aggregation.table.records++;
 		}
@@ -1168,6 +1274,57 @@ $Log:data.js,v $
 		return this.aggregation;
 	};
 
+	/**
+	 * condense rows of a table by unique values of one column <br>
+	 * sums numeric values of the condensed rows if not defined as 'keep' in 'option'
+	 * @parameter szColumn the column of the values to make unique
+	 * @parameter option parameter
+	 * @type dbtable
+	 * @return the condensed table
+	 * <br>
+	 * <strongoptions:</strong>
+	 *  keep: don't sum values of this column(s)
+	 *        useful if the column contains an ID 
+	 * <br>
+	 *  example:
+	 *		myData.condense( "unique value column", {"keep":['column to keep','another column to keep']} );
+	 */
+	Data.Table.prototype.condense = function(szColumn,option){
+
+		var uniqueA = {};
+		var uniqueIndex = this.columnIndex(szColumn);
+		var keepIndexA = [];
+
+		if ( option && option.keep ){
+			// option.keep is string
+			if ( typeof(option.keep) == "string" ){
+				keepIndexA[this.columnIndex(option.keep)] = true;
+			}else
+			// or array of strings
+			for ( i=0; i<option.keep.length; i++ ){
+				keepIndexA[this.columnIndex(option.keep[i])] = true;
+			}
+		}
+		for ( var j=0; j<this.records.length; j++ ){
+			var szTest = String(this.records[j][uniqueIndex]);
+			if ( uniqueA[szTest] != null ){
+				var k = uniqueA[szTest];
+				for ( v in this.records[j] ){
+					if ( !keepIndexA[v] ) {
+						if ( !isNaN(this.records[j][v]) && (this.records[k][v] != this.records[j][v]) ){
+							this.records[k][v] += this.records[j][v];
+						}
+					}
+				}				
+				this.records.splice(j,1);
+				j--;
+			}else{
+				uniqueA[szTest] = j;
+			}
+		}
+		return this;
+	};
+	
 	/**
 	 * creates a pivot table <br>
 	 * <br>
@@ -1197,8 +1354,25 @@ $Log:data.js,v $
 		// make field indices
 
 		var indexA = [];
-		for ( i=0; i<this.fields.length; i++ ){
+		for ( var i=0; i<this.fields.length; i++ ){
 			indexA[String(this.fields[i].id)] = i;
+		}
+
+		// check the source columns
+
+		if ( typeof(indexA[options.lead]) == 'undefined' ){
+			alert("data.pivot - lead column '"+options.lead+"' not found");
+		}
+		if ( typeof(indexA[options.cols]) == 'undefined' ){
+			alert("data.pivot - pivot columns source column '"+options.cols+"' not found");
+		}
+		for ( i in options.keep ) {
+			if ( typeof(indexA[options.keep[i]]) == 'undefined' ){
+				alert("data.pivot - pivot keep column '"+options.keep[i]+"' not found");
+			}
+		}
+		if ( typeof(indexA[options.value]) == 'undefined' ){
+			alert("data.pivot - pivot value column '"+options.value+"' not found");
 		}
 
 		// make the pivot 
@@ -1211,7 +1385,7 @@ $Log:data.js,v $
 
 			var szRow  = String(data[row][indexA[options.lead]]);
 			var szCol  = String(data[row][indexA[options.cols]]);
-			var nValue = options.value?__myNumber(data[row][indexA[options.value]]):1;
+			var nValue = options.value?__scanValue(data[row][indexA[options.value]]):1;
 
 			if ( !szCol || szCol.length < 1 ){
 				szCol = "undefined"
@@ -1221,7 +1395,7 @@ $Log:data.js,v $
 			}
 			if ( !rowA[szRow] ){
 				rowA[szRow] = {"Total":0};
-				for ( k=0; k<options.keep.length; k++ ){
+				for ( var k=0; k<options.keep.length; k++ ){
 					rowA[szRow][options.keep[k]] = data[row][indexA[options.keep[k]]];
 				}
 			}
@@ -1230,8 +1404,10 @@ $Log:data.js,v $
 
 			if ( !rowA[szRow][szCol] ){
 				rowA[szRow][szCol] = nValue;
+				rowA[szRow][szCol+"count"] = 0;
 			}else{
 				rowA[szRow][szCol] += nValue;
+				rowA[szRow][szCol+"count"]++;
 			}
 		}
 
@@ -1244,11 +1420,11 @@ $Log:data.js,v $
 		// lead
 		this.__pivot.fields.push({id:options.lead});
 		// keep
-		for ( k=0; k<options.keep.length; k++ ){
+		for ( var k=0; k<options.keep.length; k++ ){
 			this.__pivot.fields.push({id:options.keep[k]});
 		}
 		// cols
-		for ( a in colA ){
+		for ( var a in colA ){
 			this.__pivot.fields.push({id:a});
 		}
 		//totale
@@ -1257,7 +1433,7 @@ $Log:data.js,v $
 
 		// values
 		// ------------
-		for ( a in rowA ){
+		for ( var a in rowA ){
 
 			// collect values per place
 			var valueA = new Array();
@@ -1266,13 +1442,17 @@ $Log:data.js,v $
 			valueA.push(a);
 
 			// keep
-			for ( k=0; k<options.keep.length; k++ ){
+			for ( var k=0; k<options.keep.length; k++ ){
 				valueA.push(rowA[a][options.keep[k]]);
 			}
 
 			// cols
-			for ( t in colA ){
-				valueA.push(rowA[a][t]||0);
+			for ( var t in colA ){
+				if ( options.calc == "mean" ){
+					valueA.push((rowA[a][t]||0)/(rowA[a][t+"count"]||1));
+				}else{
+					valueA.push(rowA[a][t]||0);
+				}
 			}
 
 			// totale
@@ -1310,8 +1490,8 @@ $Log:data.js,v $
 
 		if ( options.fields ){
 			options.columns = [];
-			for ( i=0; i<options.fields.length; i++ ){
-				for ( ii=0; ii<this.fields.length; ii++ ){
+			for ( var i=0; i<options.fields.length; i++ ){
+				for ( var ii=0; ii<this.fields.length; ii++ ){
 					if ( this.fields[ii].id == options.fields[i] ){
 						options.columns.push(ii);
 					}
@@ -1320,13 +1500,13 @@ $Log:data.js,v $
 		}
 		
 		var indexA = [];
-		for ( i=0; i<options.columns.length; i++ ){
+		for ( var i=0; i<options.columns.length; i++ ){
 			this.__subt.fields.push({id:String(this.fields[options.columns[i]].id)});
 			this.__subt.table.fields++;
 		}
-		for ( j in this.records ){
+		for ( var j in this.records ){
 			var records = [];
-			for ( i=0; i<options.columns.length; i++ ){
+			for ( var i=0; i<options.columns.length; i++ ){
 				records.push(this.records[j][options.columns[i]]);
 			}
 			this.__subt.records.push(records);
@@ -1382,7 +1562,7 @@ $Log:data.js,v $
 				var timeCollA = options.create || ['date','year','month','day','hour'];
 
 				// add new time columns 
-				for ( i=0; i<timeCollA.length; i++ ){
+				for ( var i=0; i<timeCollA.length; i++ ){
 					this.__subt.fields.push({id:String(timeCollA[i])});
 					this.__subt.table.fields++;
 				}
@@ -1390,7 +1570,7 @@ $Log:data.js,v $
 				// make values 
 				// ------------------
 
-				for ( j in this.records ){
+				for ( var j in this.records ){
 					var records = [];
 
 					// copy orig values 
@@ -1400,7 +1580,7 @@ $Log:data.js,v $
 
 					// add new time column values
 					var d = new Date(this.records[j][column]);
-					for ( i=0; i<timeCollA.length; i++ ){
+					for ( var i=0; i<timeCollA.length; i++ ){
 						switch ( timeCollA[i] )	{
 						case 'date':
 							var date = String(d.getDate()) + "." + String(d.getMonth()+1) + "." + String(d.getFullYear());
@@ -1452,7 +1632,7 @@ $Log:data.js,v $
 	 */
 	Data.Column.prototype.values = function(){
 		this.valueA = [];
-		for ( i in this.table.records ){
+		for ( var i in this.table.records ){
 			this.valueA.push(this.table.records[i][this.index]);
 		}
 		return this.valueA;
@@ -1469,7 +1649,7 @@ $Log:data.js,v $
 
 		// make new record values 
 		// ----------------------
-		for ( j in this.table.records ){
+		for ( var j in this.table.records ){
 			// query new column value by callback
 			this.table.records[j][this.index] = callback(this.table.records[j][this.index]);
 		}
@@ -1598,7 +1778,7 @@ $Log:data.js,v $
 	 * @type void
 	*/
 	Data.Broker.prototype.addSource = function(szUrl,szType){
-			_LOG("DataBroker: addSource:"+szUrl);
+			_LOG("Data.Broker: addSource:"+szUrl);
 			this.sourceQueryA.push({
 				url:szUrl,
 				type:szType,
@@ -1606,6 +1786,7 @@ $Log:data.js,v $
 				result:null,
 				next:this
 				});
+			return this;
 	};
 	/**
 	 * @method setCallback
@@ -1615,6 +1796,7 @@ $Log:data.js,v $
 	*/
 		Data.Broker.prototype.setCallback = function(callback){
 			this.callback = callback;
+			return this;
 		};
 	/**
 	 * @method parseDefinition
@@ -1632,8 +1814,9 @@ $Log:data.js,v $
 	 * initiate the process to load the programmed sources
 	 * @type void
 	*/
-		Data.Broker.prototype.realize = function(){
-			for ( i in this.sourceQueryA ){
+		Data.Broker.prototype.realize = function(callback){
+			this.callback = callback || this.callback; 
+			for ( var i in this.sourceQueryA ){
 				if ( this.sourceQueryA[i].url && !this.sourceQueryA[i].result ){
 					this.getData(this.sourceQueryA[i]);
 					return;
@@ -1648,14 +1831,11 @@ $Log:data.js,v $
 	 * @type void
 	*/
 		Data.Broker.prototype.getData = function(query){
-			_LOG("dbbroker get data");
-			this.__doCSVImport(query.url,{
-				callback:function(data){
-					query.data = data;
-					query.result = "success";
-					query.next.realize();
-					}
-				});
+			Data.feed("broker",{"source":query.url,"type":query.type}).load(function(mydata){
+				query.data = mydata;
+				query.result = "success";
+				query.next.realize();
+			});
 		};
 	/**
 	 * @method setData
@@ -1681,16 +1861,8 @@ $Log:data.js,v $
 	// end of data broker
 	// =====================================================================
 
-
-
-
-
-
-
-
-
-
-
+	// version message
+	console.log("*** data.js "+Data.version+" ***");
 
 /**
  * end of namespace
