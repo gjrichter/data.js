@@ -165,7 +165,7 @@ $Log:data.js,v $
 					this.__doFTImportNew(szUrl,option);
 				}else
 				if ( (option.type == "csv") || (option.type == "CSV") ){
-					$.getScript(<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js"></script>")
+					$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
 					.done(function(script, textStatus) {
 					  __this.__doCSVImport(szUrl,option);
 					  return;
