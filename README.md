@@ -35,3 +35,6 @@ the demo depends also on:
 - css from Flat Admin V.2 - Free Bootstrap Admin Templates
 
 
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbNDMyNjc2ODExXX0=
+-->
