@@ -1,9 +1,10 @@
 ## data.js
 
 a little javascript lib to load and handle data tables
+This library provides methods for operating on columnar data
 
 Reads open formats like csv and json from an URL and calls a user defined function on success with a table object.
-This table object provides several methods to explore and manipulate the data.
+This table object provides several methods to explore and handle the data.
 
 To see a **demo** click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
@@ -36,5 +37,5 @@ the demo depends also on:
 
 
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNDMyNjc2ODExXX0=
+eyJoaXN0b3J5IjpbLTE0OTkwNjY2MjYsNDMyNjc2ODExXX0=
 -->
