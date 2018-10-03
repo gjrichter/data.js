@@ -260,9 +260,6 @@ $Log:data.js,v $
 								}};
 				google.load('visualization', '1', options);
 			}else
-			if ( option.type == "FTV1" ){
-				this.__doFTImportNew(szUrl,option);
-			}else
 			if ( (option.type == "csv") || (option.type == "CSV") ){
 				$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
 				.done(function(script, textStatus) {
@@ -395,42 +392,6 @@ $Log:data.js,v $
 			this.__createDataTableObject(newData,opt.type,opt);
 
        });
-	};
-	/**
-	 * doFTImportNew 
-	 * reads from Google Fusion Table using API V1 (requires API key !)
-	 * parses the data into the map data source
-	 * @param file filename
-	 * @param i filenumber
-	 * @type void
-	 */
-	Data.Feed.prototype.__doFTImportNew = function(ftId,opt) {
-
-		var szKey = "AIzaSyDvly_8Nx4wPF-Otful4IdGVEvjNJdPl5M";
-		var szFT  = "https://www.googleapis.com/fusiontables/v1/query?";
-
-		// Construct query
-        var szUrl = szFT + "sql=SELECT * FROM " + ftId + "&key=" + szKey;
-
-		$.getJSON(szUrl,function( data, textStatus, jqxhr ) {
-
-			var newData = new Array();
-
-			newData.push(data.columns);
-			for (var i = 0; i < data.rows.length; i++) {
-				newData.push(data.rows[i]);
-			}
-
-			// user defined callback
-			if ( opt.callback ){
-				opt.callback(newData,opt);
-				return;
-			}
-
-			// finish the data table object 
-			this.__createDataTableObject(newData,opt.type,opt);
-
-		});
 	};
 
 	// ---------------------------------
