@@ -245,7 +245,7 @@ $(function() {
 
 		// get one rss AlboPop feed 
 		// ------------------------------------
-		szUrl = "http://corsme.herokuapp.com/"+feed;
+		szUrl = "https://corsme.herokuapp.com/"+feed;
 		var myfeed = Data.feed({"source":szUrl,"type":"rss"})
 			.error(function(e){console.log("load error:"+e.status+" - "+ szUrl)})
 			.load(function(mydata){
