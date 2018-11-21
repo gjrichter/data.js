@@ -12,7 +12,7 @@ To see a **demo** click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
 ```
 var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/data/issues.csv";
-var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
+var myfeed = Data.feed({"source":szUrl,"type":"csv"}).load(function(mydata){
 
     // get all values of column 'id' into one array
     var dataA = mydata.column("id").values(); 
