@@ -195,16 +195,16 @@
         <div>
             <!-- Javascript Libs -->
 
-			<script type="text/javascript" src="../lib/js/jquery.min.js"></script>
-			<script type="text/javascript" src="../lib/js/bootstrap.min.js"></script>
+ 			<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+			<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+			<script src="https://cdn.jsdelivr.net/gh/mholt/PapaParse/papaparse.min.js"></script>
+			<!--
+			<script src="https://cdn.jsdelivr.net/gh/gjrichter/data.js/data.js"></script>
+			-->
+			<script src="../../../data.js/data.js"></script>
+			<script src="http://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.bundle.min.js"></script>
 
-			<!-- js per DASHBOARD statistica -->
-			<script type="text/javascript" src="../lib/js/Chart.bundle.js"></script>
-			<script type="text/javascript" src="../lib/js/plugins/papaparse.js"></script>
-
-			<script type="text/javascript" src="../../data.js"></script>
-
-			<script type="text/javascript" src="../js/index.js"></script>
+            <script type="text/javascript" src="../js/index.js"></script>
 
             <!-- Javascript -->
 			<script>
