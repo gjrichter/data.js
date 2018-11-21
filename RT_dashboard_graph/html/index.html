@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Flat Admin V.2 - Free Bootstrap Admin Templates</title>
+ 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Fonts -->
+    <link href='http://fonts.googleapis.com/css?family=Roboto+Condensed:300,400' rel='stylesheet' type='text/css'>
+    <link href='http://fonts.googleapis.com/css?family=Lato:300,400,700,900' rel='stylesheet' type='text/css'>
+    <!-- CSS Libs -->
+    <link rel="stylesheet" type="text/css" href="../lib/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/animate.min.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/bootstrap-switch.min.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/checkbox3.min.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/dataTables.bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="../lib/css/select2.min.css">
+    <!-- CSS App -->
+    <link rel="stylesheet" type="text/css" href="../css/style.css">
+    <link rel="stylesheet" type="text/css" href="../css/themes/flat-blue.css">
+</head>
+
+<body class="flat-blue">
+    <div class="app-container">
+        <div class="row content-container">
+            <nav class="navbar navbar-default navbar-fixed-top navbar-top">
+                <div class="container-fluid">
+                    <div class="navbar-header">
+                        <button type="button" class="navbar-expand-toggle">
+                            <i class="fa fa-bars icon"></i>
+                        </button>
+                        <ol class="breadcrumb navbar-breadcrumb">
+                            <li id="menu-title" class="active"></li>
+                        </ol>
+                        <button type="button" class="navbar-right-expand-toggle pull-right visible-xs">
+                            <i class="fa fa-th icon"></i>
+                        </button>
+                    </div>
+                </div>
+            </nav>
+
+			<div id="menu"></div>
+
+           <!-- Banner -->
+            <div class="jumbotron ">
+                <div class="container" style="height:0px">
+					<!--
+                    <h2 class="text-center"><img src="../img/tci_logo.jpg" height="22px"></img><div class="color-white">title</div></h2>
+                    <p class="text-center color-white app-description">
+					description</p>
+					-->
+                </div>
+            </div>  
+
+           <!-- Loading -->
+            <div id="loading" class="container-fluid">
+                <div class="container" >
+				   <div class="row">
+						<div class="col-md-1 col-md-offset-5 centered">
+							<img src="../img/spinner.gif" height="36px" style="margin:5em 5em -4em 5em">
+						</div>	
+					</div>
+                </div>
+            </div>  
+
+            <div class="container-fluid">
+				<div class="row">
+					<div class="col-md-6">
+						<h2>filtro da applicare ai titoli degli atti</h2>
+						<div id="custom-search-input">
+							<div class="input-group col-md-12">
+								<input type="text" class="form-control input-lg" placeholder="Filtro ..." value="" 
+								onkeyup="javascript:__value = $(this).val();if (event.keyCode === 13) {makeAlboPopAll(__value);}"/>
+								<span class="input-group-btn" >
+									<button class="btn btn-info btn-lg" type="button" onclick="makeAlboPopAll(__value);">
+										<i class="glyphicon glyphicon-refresh"></i>
+									</button>
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+          <!-- Main Content -->
+            <div class="container-fluid">
+                <div class="row">
+
+				   <!-- sum and trend cards
+				   -->
+				   <div class="col-md-6 col-sm-12">
+					  <h1>Albo Pop - Monitoraggio</h1> 	
+				   </div>	  
+				   <div class="col-md-6 col-sm-12" >
+						<h3>
+						<span>totale e ultimi 28 giorni - curve: ultimi 56 giorni </span><br>
+						<span>caricati:</span>
+						<span id="FeedReadCount">0</span>
+						<span >/</span>
+						<span id="FeedCount" >0</span>
+						</h3>
+						<h3>
+						<span>cliccando sui quadri si arriva ai particolari</span><br>
+						</h3>
+					</div>
+				</div>
+                <div class="row">
+
+
+				   <div id="AlboPopCards" class="row">
+				   </div>
+
+				   <!-- day by day curves for one comune
+				   -->	
+
+				</div>
+			</div>
+
+		    <hr>
+
+            <div id="div-particolari" class="container-fluid" style="display:none">
+                <div class="side-body padding-top">
+				   <h1 id="comune-particolari">Accumoli</h1><h1>
+				   <span style="font-size:0.5em;margin-bottom:0.5em;margin-left:0.2em">Sequenza teporale delle segnalazioni aggregati per giorno</span></h1>
+
+
+                    <div class="row">
+						<div class="col-md-9 col-sm-12">
+							<div class="card">
+								<div class="card">
+									<canvas id="jumbotron-bar-chart" class="chart"></canvas>
+								</div>
+								<div class="card-body half-padding">
+									<h4 class="float-left no-margin font-weight-300"></h4>
+									<h2 class="float-right no-margin font-weight-300"></h2>
+									<div class="clear-both"></div>
+								</div>
+							</div>
+						</div>
+                    </div>
+					
+					<h1></h1>
+                    <div class="row">
+                        <div class="col-md-9 col-xs-12">
+                            <div class="card card-success">
+                                <div class="card-header">
+                                    <div class="card-title">
+                                        <div class="title"><i class="fa fa-comments-o"></i> ultime pubblicazioni nel albo di: <span id="comune-lista" style="font-size:1.2em"></span></div>
+                                    </div>
+                                    <div class="clear-both"></div>
+                                </div>
+                                <div class="card-body no-padding" style="height:550px;overflow:auto" >
+                                    <ul class="message-list" >
+                                        <a href="#" id="message-load-more">
+                                            <li class="text-center load-more">
+                                                <i class="fa fa-refresh"></i> load more..
+                                            </li>
+                                        </a>
+                                    </ul>
+                                </div>
+                             </div>
+ 						</div>
+                    </div>
+
+ 				   <hr>
+
+				    <div class="row" style="margin-top:2em">
+                        <div class="col-xs-12">
+                            <div class="card">
+								<a href="javascript:$('#Rifiuti-body').toggle();">
+									<div class="card-header">
+										<div class="card-title" style="width:100%">
+											<div class="title pull-left">[tabelle] ... </div><div class="pull-right"><i class="fa fa-plus"></i></div>
+										</div>
+									</div>
+ 								<a/>
+                               <div class="card-body"  id="Rifiuti-body" style="display:none">
+									<table id="segnalazioni" class="display" width="100%"><tr><td>Loading ...&nbsp;<img src="../img/spinner.gif" height="14px"></td></tr></table>
+									<table id="segnalazioniXdate" class="display" width="100%"><tr><td>Loading ...&nbsp;<img src="../img/spinner.gif" height="14px"></td></tr></table>
+									<table id="segnalazioniXdateXricostruzione" class="display" width="100%"><tr><td>Loading ...&nbsp;<img src="../img/spinner.gif" height="14px"></td></tr></table>
+									</div>
+								</div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <footer class="app-footer">
+            <div class="wrapper">
+            </div>
+        </footer>
+        <div>
+            <!-- Javascript Libs -->
+
+ 			<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+			<script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+			<script src="https://cdn.jsdelivr.net/gh/mholt/PapaParse/papaparse.min.js"></script>
+			<!--
+			<script src="https://cdn.jsdelivr.net/gh/gjrichter/data.js/data.js"></script>
+			-->
+			<script src="../../../data.js/data.js"></script>
+			<script src="http://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.3.0/Chart.bundle.min.js"></script>
+
+            <script type="text/javascript" src="../js/index.js"></script>
+
+            <!-- Javascript -->
+			<script>
+			// ---------------------------------------------------------------------------------------
+			// infuse HTML snippets
+			// ---------------------------------------------------------------------------------------
+
+			infuseHTML = function(szElement,szUrl,szDiv){
+
+				szStoryRoot = "";
+
+				if ( typeof($("#"+szElement)[0]) == "undefined" ){
+					return;
+				}
+				$("#"+szElement).load(szUrl+' #'+ szDiv , function(response, status, xhr) {
+					  if (status == "error") {
+						var msg = "Sorry but there was an error: ";
+						$("#story").html(msg + xhr.status + "<br><br> '" +szStoryRoot+szUrl+ "'<br><br> " + xhr.statusText);
+					  }
+					});
+			};
+
+			infuseHTML("menu","./menu.html","menu");
+
+			var d = new Date();
+			//$("#menu-title").html( $("#menu-title").html() + (" - <span style='color:#dddddd'>"+d.toString()+"</span>")); 
+
+			</script>
+
+
+
+</body>
+
+</html>
