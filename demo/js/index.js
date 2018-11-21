@@ -54,7 +54,7 @@ $(function() {
 	// ..........................................................
 
 	var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/_data/issues.csv";
-	var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
+	var myfeed = Data.feed({"source":szUrl,"type":"csv"}).load(function(mydata){
 
 		$("#loading").hide();
 
