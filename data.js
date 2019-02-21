@@ -90,7 +90,8 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.31"
+		version: "1.32",
+		errors: []
 	};
 
 	function expose() {
@@ -224,9 +225,12 @@ $Log:data.js,v $
 	 */
 
 	Data.Feed = function (options) {
-		this.options = options;
+		this.options = options || {};
 		this.debug = false;
-		};
+		this.options.error = function(e){
+				Data.errors.push(e);
+				};
+			};
 
 	Data.Feed.prototype = {
 
@@ -275,6 +279,9 @@ $Log:data.js,v $
 			}else
 			if ( (option.type == "json") || (option.type == "JSON") || (option.type == "Json")){
 				this.__doJSONImport(szUrl,option);
+			}else
+			if ( (option.type == "geojson") || (option.type == "GEOJSON") || (option.type == "GeoJson")){
+				this.__doGeoJSONImport(szUrl,option);
 			}else
 			if ( (option.type == "jsonDB") || (option.type == "JSONDB") || (option.type == "JsonDB") || (option.type == "jsondb") ){
 				this.__doJsonDBImport(szUrl,option);
@@ -481,9 +488,6 @@ $Log:data.js,v $
 				.fail(function(jqxhr, settings, exception) {
 					if ( __this.options.error ){
 						__this.options.error("\""+szUrl+"\" "+exception);
-					}else{
-						alert(exception);
-						alert("external data: '"+szUrl+"' could not be loaded !",2000);
 					}
 				});
 			});
@@ -547,8 +551,6 @@ $Log:data.js,v $
 			error: function(jqxhr, settings, exception) {
 				if ( (typeof(opt) != "undefined") && opt.error ){
 					opt.error(exception);
-				}else{
-					alert("\"" + szUrl + "\" could not be loaded!");
 				}
 			}
 		 });
@@ -615,6 +617,9 @@ $Log:data.js,v $
 		// finish the data table object 
 		this.__createDataTableObject(newData,opt.type,opt);
 
+		delete csv;
+		delete newData;
+
 		return false;
 	};
 
@@ -648,8 +653,6 @@ $Log:data.js,v $
 			error: function(jqxhr, settings, exception) {
 				if ( (typeof(opt) != "undefined") && opt.error ){
 					opt.error(jqxhr, settings, exception);
-				}else{
-					alert("\"" + szUrl + "\" could not be loaded!");
 				}
 			}
 		});
@@ -779,8 +782,6 @@ $Log:data.js,v $
 			}).fail(function(e) { 
 				if ( (typeof(opt) != "undefined") && opt.error ){
 					opt.error(e);
-				}else{
-					alert("\"" + szUrl + "\" could not be loaded!");
 				}
 			});
 
@@ -803,18 +804,107 @@ $Log:data.js,v $
 		this.data = data;
 
 		var dataA = [];
-
 		var row = [];
-		for ( var a in data[0] ){
-			row.push(a);
+
+		// json with structure data.columns[] data.rows[][]
+		// -------------------------------------------------
+		if ( data && data.data && data.data.columns && data.data.rows ){
+
+			var columns = data.data.columns;
+			var rows = data.data.rows;
+
+			for ( var i in columns ){
+				row.push(columns[i]);
+			}
+			dataA.push(row);
+
+			for ( var i=0; i<rows.length;i++ ){
+				var row = [];
+				for ( var ii in rows[0] ){
+					row.push(rows[i][ii]);
+				}
+				dataA.push(row);
+			}
+
+		// json without database structure
+		// -------------------------------------------------
+		}else{
+
+			for ( var a in data[0] ){
+				row.push(a);
+			}
+			dataA.push(row);
+
+			for ( var i=0; i<data.length;i++ ){
+				var row = [];
+				for ( var a in data[0] ){
+					row.push(data[i][a]);
+				}
+				dataA.push(row);
+			}
 		}
+
+		// finish the data table object 
+		this.__createDataTableObject(dataA,"json",opt);
+	}
+
+
+	// ---------------------------------
+	// G E O - J S O N  
+	// ---------------------------------
+
+	/** 
+	 * __doGeoJSONImport 
+	 * reads a simple JSON table 
+	 * parses the data into the map data source
+	 * @param file filename
+	 * @param i filenumber
+	 * @type void
+	 */
+	Data.Feed.prototype.__doGeoJSONImport = function(szUrl,opt) {
+
+		var __this = this;
+		$.get(szUrl,
+			function(data){
+				__this.__processGeoJsonData(data,opt);
+			}).fail(function(e) { 
+				if ( (typeof(opt) != "undefined") && opt.error ){
+					opt.error(e);
+				}
+			});
+
+	}
+	/** 
+	 * __processJsonData 
+	 * reads a simple JSON table 
+	 * parses the data into the map data source
+	 * @param file filename
+	 * @param i filenumber
+	 * @type void
+	 */
+	Data.Feed.prototype.__processGeoJsonData = function(script,opt) {
+
+		if ( typeof(script) == "string" ){
+			eval("var data = "+script );
+		}else{
+			var data = script;
+		}
+		this.data = data;
+
+		var dataA = [];
+		var row = [];
+		for ( p in data.features[0].properties ){
+			row.push(p);
+		}
+		row.push("geometry");
 		dataA.push(row);
 
-		for ( var i=0; i<data.length;i++ ){
-			var row = [];
-			for ( var a in data[0] ){
-				row.push(data[i][a]);
+		for ( var i=0; i<data.features.length; i++ ){
+			row = [];
+			for ( p in data.features[i].properties ){
+				row.push(data.features[i].properties[p]);
 			}
+			row.push(JSON.stringify(data.features[i].geometry));
 			dataA.push(row);
 		}
 
@@ -1010,7 +1100,6 @@ $Log:data.js,v $
 					return column;
 				}
 			}
-			alert("data.js: '"+szColumn+"' not found!");
 			return null;
 		},
 
@@ -1113,7 +1202,6 @@ $Log:data.js,v $
 					}
 				}
 				if ( column == null ){
-					alert("data.js: "+options.source+" not found!");
 					return null;
 				}
 			}
@@ -1540,6 +1628,10 @@ $Log:data.js,v $
 		 *    <td>columns of the sourcetable to copy into the pivot</td>
 		 *  </tr>
 		 *  <tr>
+		 *    <td>sum</td>
+		 *    <td>columns of the sourcetable to copy and sum into the pivot</td>
+		 *  </tr>
+		 *  <tr>
 		 *    <td>cols</td>
 		 *    <td>the sourcetable field that defines the pivot columns (together with 'keep')</td>
 		 *  </tr>
@@ -1571,6 +1663,7 @@ $Log:data.js,v $
 		 * var pivot = scrutini.pivot({
 		 *              "lead":	'codice',
 		 *              "keep":	['tipo'],
+		 *              "sum":	['membri'],
 		 *              "cols":	'descr_lista',
 		 *              "value":  "voti" 
 		 *              });
@@ -1588,6 +1681,7 @@ $Log:data.js,v $
 			options.lead = options.lead || options.rows;
 			options.cols = options.cols || options.columns;
 			options.keep = options.keep || [];
+			options.sum  = options.sum  || [];
 
 			// make field indices
 
@@ -1607,6 +1701,11 @@ $Log:data.js,v $
 			for ( i in options.keep ) {
 				if ( typeof(indexA[options.keep[i]]) == 'undefined' ){
 					alert("data.pivot - pivot keep column '"+options.keep[i]+"' not found");
+				}
+			}
+			for ( i in options.sum ) {
+				if ( typeof(indexA[options.sum[i]]) == 'undefined' ){
+					alert("data.pivot - pivot sum column '"+options.sum[i]+"' not found");
 				}
 			}
 			if ( options.value && (typeof(indexA[options.value]) == 'undefined') ){
@@ -1636,6 +1735,13 @@ $Log:data.js,v $
 					for ( var k=0; k<options.keep.length; k++ ){
 						rowA[szRow][options.keep[k]] = data[row][indexA[options.keep[k]]];
 					}
+					for ( var k=0; k<options.sum.length; k++ ){
+						rowA[szRow][options.sum[k]] = Number(data[row][indexA[options.sum[k]]]);
+					}
+				}else{
+					for ( var k=0; k<options.sum.length; k++ ){
+						rowA[szRow][options.sum[k]] += Number(data[row][indexA[options.sum[k]]]);
+					}
 				}
 
 				rowA[szRow]["Total"] += nValue;
@@ -1661,6 +1767,10 @@ $Log:data.js,v $
 			for ( var k=0; k<options.keep.length; k++ ){
 				this.__pivot.fields.push({id:options.keep[k]});
 			}
+			// sum
+			for ( var k=0; k<options.sum.length; k++ ){
+				this.__pivot.fields.push({id:options.sum[k]});
+			}
 			// cols
 			for ( var a in colA ){
 				this.__pivot.fields.push({id:a});
@@ -1682,6 +1792,11 @@ $Log:data.js,v $
 				// keep
 				for ( var k=0; k<options.keep.length; k++ ){
 					valueA.push(rowA[a][options.keep[k]]);
+				}
+
+				// sum
+				for ( var k=0; k<options.sum.length; k++ ){
+					valueA.push(rowA[a][options.sum[k]]);
 				}
 
 				// cols
@@ -2373,7 +2488,7 @@ $Log:data.js,v $
 			}
 
 			if ( !this.outColumnsA ){
-				this.outColumnsA = [this.sourceA[0].opt.lookup];
+				this.outColumnsA = [];
 				for ( i in labelA ){
 					this.outColumnsA.push(labelA[i]);
 				}
@@ -2421,9 +2536,6 @@ $Log:data.js,v $
 					var ll = outColumnsLookupA[this.outColumnsA[ii]];
 					if ( ll ){
 						if ( ll.input == 0 ){
-							if ( !row.length ){
-								row.push(lookup);
-							}
 							row.push(this.sourceA[0].data[i][ll.index]);
 						}else{
 							if (this.namedSourceA[ll.input][lookup]){
