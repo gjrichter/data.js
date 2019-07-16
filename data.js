@@ -90,7 +90,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.32",
+		version: "1.33",
 		errors: []
 	};
 
@@ -255,24 +255,11 @@ $Log:data.js,v $
 			var __this = this;
 
 			if ( !szUrl ){
-				alert("data.js, Data.feed(...).load(): no source defined !",2000);
+				_alert("Data.feed(...).load(): no source defined !",2000);
 			}
 
-			if ( option.type == "FT" ){
-				var options = {packages: ['corechart'], callback : function() {
-								this.__doFTImport(szUrl,option);
-								}};
-				google.load('visualization', '1', options);
-			}else
 			if ( (option.type == "csv") || (option.type == "CSV") ){
-				$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
-				.done(function(script, textStatus) {
-				  __this.__doCSVImport(szUrl,option);
-				  return;
-				})
-				.fail(function(jqxhr, settings, exception) {
-				  alert("'"+option.type+"' unknown format !");
-				});
+			  this.__doCSVImport(szUrl,option);
 			}else
 			if ( (option.type == "rss") || (option.type == "RSS") ){
 				this.__doRSSImport(szUrl,option);
@@ -293,10 +280,10 @@ $Log:data.js,v $
 				  return;
 				})
 				.fail(function(jqxhr, settings, exception) {
-				  alert("'"+option.type+"' unknown format !");
+				  _alert("'"+option.type+"' unknown format !");
 				});
 			}else{
-				alert("'"+option.type+"' unknown format !");
+				_alert("'"+option.type+"' unknown format !");
 			}
 			return this;
 		},
@@ -347,59 +334,6 @@ $Log:data.js,v $
 	// -----------------------------
 	// D A T A    L O A D E R 
 	// -----------------------------
-
-	// --------------------------------------
-	// F u s i o n   T a b l e s (depricated)
-	// --------------------------------------
-	
-	/**
-	 * doFTImport  
-	 * reads from Google Fusion Table 
-	 * parses the data into the map data source
-	 * @param file filename
-	 * @param i filenumber
-	 * @type void
-	 */
-	Data.Feed.prototype.__doFTImport = function(ftId,opt) {
-
-       // Construct query
-        var query = "SELECT * FROM " + ftId;
-        var queryText = encodeURIComponent(query);
-        var gvizQuery = new google.visualization.Query('http://www.google.com/fusiontables/gvizdata?tq=' + queryText);
-
-        // Send query and draw table with data in response
-        gvizQuery.send(function(response) {
-
-			var numRows = response.getDataTable().getNumberOfRows();
-			var numCols = response.getDataTable().getNumberOfColumns();
-
-			var newData = new Array();
-
-			var newRow = new Array();
-			for (var i = 0; i < numCols; i++) {
-				newRow.push(response.getDataTable().getColumnLabel(i));
-			}
-			newData.push(newRow);
-
-			for (var i = 0; i < numRows; i++) {
-				newRow = new Array();
-				for(var j = 0; j < numCols; j++) {
-					newRow.push(response.getDataTable().getValue(i, j));
-				}
-				newData.push(newRow);
-			}
-
-			// user defined callback
-			if ( opt.callback ){
-				opt.callback(newData,opt);
-				return;
-			}
-
-			// finish the data table object 
-			this.__createDataTableObject(newData,opt.type,opt);
-
-       });
-	};
 
 	// ---------------------------------
 	// J S O N s t a t  
@@ -550,7 +484,7 @@ $Log:data.js,v $
 			},
 			error: function(jqxhr, settings, exception) {
 				if ( (typeof(opt) != "undefined") && opt.error ){
-					opt.error(exception);
+					opt.error("\""+szUrl+"\" "+exception);
 				}
 			}
 		 });
@@ -575,19 +509,46 @@ $Log:data.js,v $
 		// GR 02.11.2015 nuovo csv parser Papa Parse by Matt Hold 
 		// GR 21.07.2016 if autodecet delimiter fails, try first ; and then ,   
 
+		if ( typeof(Papa) == "undefined" ){
+			__this = this;
+			$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
+			.done(function(script, textStatus) {
+			  __this.__processCSVData(csv,opt);
+			  return;
+			})
+			.fail(function(jqxhr, settings, exception) {
+			  _alert("'"+opt.type+"' parser not loaded !");
+			  return;
+			});
+			return;
+		}
+		
 		var newData = Papa.parse(csv,opt.parser).data;
 
-		if ( newData[0].length != newData[1].length ){
-			_LOG("csv parser: autodetect failed");
-			_LOG("csv parser: delimiter = ;");
-			newData = Papa.parse(csv,{delimiter:";"}).data;
-			if ( newData[0].length != newData[1].length ){
-				_LOG("csv parser: delimiter = ; failed");
-				_LOG("csv parser: delimiter = ,");
-				newData = Papa.parse(csv,{delimiter:","}).data;
+		if ( typeof(newData[0]) == "undefined" || 
+			 typeof(newData[1]) == "undefined"){
+			_alert(newData);
+			if ( opt.error ){
+				opt.error(newData);
+			}
+			delete csv;
+			delete newData;
+			return false;
+		}
+
+		if ( !(opt.parser && opt.parser.delimiter) ){
+			if ( (newData[0].length != newData[1].length) ){
+				_LOG("csv parser: autodetect failed");
+				_LOG("csv parser: delimiter = ;");
+				newData = Papa.parse(csv,{delimiter:";"}).data;
 				if ( newData[0].length != newData[1].length ){
-					_LOG("csv parser: delimiter = , failed");
-					alert("csv parsing error");
+					_LOG("csv parser: delimiter = ; failed");
+					_LOG("csv parser: delimiter = ,");
+					newData = Papa.parse(csv,{delimiter:","}).data;
+					if ( newData[0].length != newData[1].length ){
+						_LOG("csv parser: delimiter = , failed");
+						_alert("csv parsing error");
+					}
 				}
 			}
 		}
@@ -678,10 +639,10 @@ $Log:data.js,v $
 				this.__parseRSSData(data,opt);
 			}else
 			if ( $(data).find('feed').length ){
-				alert("feed not yet supported");
+				_alert("feed not yet supported");
 			}else
 			if ( $(data).find('atom').length ){
-				alert("atom not yet supported");
+				_alert("atom not yet supported");
 			}
 		}
 	};
@@ -1019,7 +980,7 @@ $Log:data.js,v $
 				}
 				this.records.push(valuesA);
 			}
-			this.table = {records:dataA.length-1 , fields:dataA[0].length };
+			this.table = {records:this.records.length , fields:this.fields.length };
 			return this;
 		},
 
@@ -1359,7 +1320,7 @@ $Log:data.js,v $
 							szTokenA.splice(0,nToken);
 
 						}else{
-							alert("data.js - selection error - incomplete query!\nquery: "+szSelection);
+							_alert("data.js - selection error - incomplete query!\nquery: "+szSelection);
 							break;
 						}
 						
@@ -1683,6 +1644,40 @@ $Log:data.js,v $
 			options.keep = options.keep || [];
 			options.sum  = options.sum  || [];
 
+			// force string arrays 
+
+			/**
+			 * test if object is array 
+			 * @parameter obj the object to test
+			 * @return true/false
+			 * @type boolean
+			 */
+			__isArray = function (obj) {
+				return Object.prototype.toString.call(obj) === '[object Array]';
+			};
+			/**
+			 * make sure, object is type array 
+			 * @parameter obj the object to transform
+			 * @return array
+			 * @type array of string
+			 */
+			__toArray = function (obj) {
+				if ( !obj || typeof(obj) == 'undefined' ){
+					return [];
+				} else
+				if (__isArray(obj)) {
+					return obj;
+				} else {
+					return (String(obj).match(/\|/)) ? String(obj).split('|') : String(obj).split(',');
+				}
+			};
+
+			options.lead = __toArray(options.lead);
+			options.cols = __toArray(options.cols);
+			options.keep = __toArray(options.keep);
+			options.sum  = __toArray(options.sum);
+			options.value  = __toArray(options.value);
+
 			// make field indices
 
 			var indexA = [];
@@ -1692,24 +1687,30 @@ $Log:data.js,v $
 
 			// check the source columns
 
-			if ( typeof(indexA[options.lead]) == 'undefined' ){
-				alert("data.pivot - lead column '"+options.lead+"' not found");
+			for ( i in options.lead ) {
+				if ( typeof(indexA[options.lead[i]]) == 'undefined' ){
+					_alert("data.pivot - pivot keep column '"+options.lead[i]+"' not found");
+				}
 			}
-			if (  options.cols && (typeof(indexA[options.cols]) == 'undefined') ){
-				alert("data.pivot - pivot columns source column '"+options.cols+"' not found");
+			for ( i in options.cols ) {
+				if (  options.cols && (typeof(indexA[options.cols[i]]) == 'undefined') ){
+					_alert("data.pivot - pivot columns source column '"+options.cols[i]+"' not found");
+				}
 			}
 			for ( i in options.keep ) {
 				if ( typeof(indexA[options.keep[i]]) == 'undefined' ){
-					alert("data.pivot - pivot keep column '"+options.keep[i]+"' not found");
+					_alert("data.pivot - pivot keep column '"+options.keep[i]+"' not found");
 				}
 			}
 			for ( i in options.sum ) {
 				if ( typeof(indexA[options.sum[i]]) == 'undefined' ){
-					alert("data.pivot - pivot sum column '"+options.sum[i]+"' not found");
+					_alert("data.pivot - pivot sum column '"+options.sum[i]+"' not found");
 				}
 			}
-			if ( options.value && (typeof(indexA[options.value]) == 'undefined') ){
-				alert("data.pivot - pivot value column '"+options.value+"' not found");
+			for ( i in options.value ) {
+				if ( typeof(indexA[options.value[i]]) == 'undefined' ){
+					_alert("data.pivot - pivot value column '"+options.value[i]+"' not found");
+				}
 			}
 
 			// make the pivot 
@@ -1720,10 +1721,23 @@ $Log:data.js,v $
 
 			for ( var row=0; row<data.length; row++ ){
 
-				var szRow  = String(data[row][indexA[options.lead]]);
-				var szCol  = String(data[row][indexA[options.cols]]);
-				var nValue = options.value?__scanValue(data[row][indexA[options.value]]):1;
+				var szRow  = String(data[row][indexA[options.lead[0]]]);
+				for ( var k=1; k<options.lead.length; k++ ){
+					szRow += "|"+data[row][indexA[options.lead[k]]];
+				}
+				for ( var k=0; k<options.keep.length; k++ ){
+					szRow += "|"+data[row][indexA[options.keep[k]]];
+				}
 
+				var szCol  = String(data[row][indexA[options.cols[0]]]);
+				
+				var nValue = 1;
+				if (options.value){
+					nValue = 0;
+					for ( var k=0; k<options.value.length; k++ ){
+						nValue += options.value[k]?__scanValue(data[row][indexA[options.value[k]]]):1;
+					}
+				}
 				if ( !szCol || szCol.length < 1 ){
 					szCol = "undefined"
 				}
@@ -1758,11 +1772,13 @@ $Log:data.js,v $
 			this.__pivot = new Data.Table;
 			var pivotTable = this.__pivot.records;
 
-			// fields array
-			// ------------
+			// make first row (table.fields) with column names
+			// ------------------------------------------------
 
 			// lead
-			this.__pivot.fields.push({id:options.lead});
+			for ( var k=0; k<options.lead.length; k++ ){
+				this.__pivot.fields.push({id:options.lead[k]});
+			}
 			// keep
 			for ( var k=0; k<options.keep.length; k++ ){
 				this.__pivot.fields.push({id:options.keep[k]});
@@ -1779,21 +1795,25 @@ $Log:data.js,v $
 			this.__pivot.fields.push({id:"Total"});
 
 
-			// values
-			// ------------
+			// make the values
+			// ----------------
 			for ( var a in rowA ){
 
 				// collect values per place
 				var valueA = new Array();
 
 				// lead
-				valueA.push(a);
+				var leadA = a.split("|");
+				for ( var k=0; k<leadA.length; k++ ){
+					valueA.push(leadA[k]);
+				}
 
 				// keep
+				/**
 				for ( var k=0; k<options.keep.length; k++ ){
 					valueA.push(rowA[a][options.keep[k]]);
 				}
-
+				**/
 				// sum
 				for ( var k=0; k<options.sum.length; k++ ){
 					valueA.push(rowA[a][options.sum[k]]);
@@ -1873,6 +1893,27 @@ $Log:data.js,v $
 				this.__subt.table.records++;
 			}
 			return this.__subt;
+		},
+
+		/**
+		 * sort the rows of a data table by values of a given column
+		 * @param {String} sortColumn the column by which values to sort the table
+		 * @type Data.Table
+		 * @return the sorted table
+		 */
+		sort: function(szColumn){
+			var valuesA = this.column(szColumn).values();
+			var sortA = [];
+			for ( var i=0; i<valuesA.length; i++ )	{
+				sortA.push({index:i,value:valuesA[i]});
+			}
+			sortA.sort(function(a,b){return((a.value < b.value)?-1:1)});
+			var records = [];
+			for ( var i=0; i<sortA.length; i++ )	{
+				records.push(this.records[sortA[i].index]);
+			}
+			this.records = records;
+			return this;
 		}
 
 	};
@@ -1928,9 +1969,6 @@ $Log:data.js,v $
 			return null;
 		}
 
-		this.__subt = new Data.Table;
-		
-		var indexA = [];
 		for (var column in this.fields )	{
 			if ( this.fields[column].id == options.source ){
 
@@ -1938,59 +1976,50 @@ $Log:data.js,v $
 				// ------------------
 
 				// copy orig fields 
-				for (var i in this.fields )	{
-					this.__subt.fields.push({id:String(this.fields[i].id)});
-					this.__subt.table.fields++;
-				}
 				var timeCollA = options.create || ['date','year','month','day','hour'];
 
 				// add new time columns 
 				for ( var i=0; i<timeCollA.length; i++ ){
-					this.__subt.fields.push({id:String(timeCollA[i])});
-					this.__subt.table.fields++;
+					this.fields.push({id:String(timeCollA[i])});
+					this.table.fields++;
 				}
 
 				// make values 
 				// ------------------
-
-				for ( var j in this.records ){
-					var records = [];
-
-					// copy orig values 
-					for ( var i in this.fields ){
-						records.push(this.records[j][i]);
-					}
+				var length = this.records.length;
+				var j = 0;
+				for ( j=0; j<length; j++ ){
 
 					// add new time column values
 					var d = new Date(this.records[j][column]);
-					for ( var i=0; i<timeCollA.length; i++ ){
-						switch ( timeCollA[i] )	{
-						case 'date':
-							var date = String(d.getDate()) + "." + String(d.getMonth()+1) + "." + String(d.getFullYear());
-							records.push(date);
-							break;
-						case 'year':
-							records.push(d.getFullYear());
-							break;
-						case 'month':
-							records.push(d.getMonth()+1);
-							break;
-						case 'day':
-							records.push(d.getDay());
-							break;
-						case 'hour':
-							records.push(d.getHours());
-							break;
+					if (d){
+						for ( var i=0; i<timeCollA.length; i++ ){
+							switch ( timeCollA[i] )	{
+							case 'date':
+								var date = String(d.getDate()) + "." + String(d.getMonth()+1) + "." + String(d.getFullYear());
+								this.records[j].push(date);
+								break;
+							case 'year':
+								this.records[j].push(d.getFullYear());
+								break;
+							case 'month':
+								this.records[j].push(d.getMonth()+1);
+								break;
+							case 'day':
+								this.records[j].push(d.getDay());
+								break;
+							case 'hour':
+								this.records[j].push(d.getHours());
+								break;
+							}
 						}
 					}
-
-					this.__subt.records.push(records);
-					this.__subt.table.records++;
 				}
+
 			}
 		}
 
-		return this.__subt;
+		return this;
 	};
 
 	/**
@@ -2448,7 +2477,7 @@ $Log:data.js,v $
 				}
 
 				if ( !this.sourceA[i].data[0] ){
-					alert("DataMerger: source '"+i+"' not found or not of type Array");
+					_alert("DataMerger: source '"+i+"' not found or not of type Array");
 				}
 
 				if ( !this.sourceA[i].opt.label ){
@@ -2546,7 +2575,7 @@ $Log:data.js,v $
 						}
 					}
 					else{
-						alert("DataMerger - missing \""+this.outColumnsA[ii] + "\" in label:[...]");
+						_alert("DataMerger - missing \""+this.outColumnsA[ii] + "\" in label:[...]");
 						return null;
 					}
 				}
@@ -2602,6 +2631,11 @@ $Log:data.js,v $
 
 	// version message
 	console.log("*** data.js "+Data.version+" ***");
+
+	// alert handling
+	var _alert = function(szAlert){
+		alert("data.js v"+Data.version+": "+szAlert);
+	};
 
 /**
  * end of namespace
