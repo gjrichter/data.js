@@ -1732,7 +1732,7 @@ $Log:data.js,v $
 				var szCol  = String(data[row][indexA[options.cols[0]]]);
 				
 				var nValue = 1;
-				if (options.value){
+				if ( options.value && options.value.length ){
 					nValue = 0;
 					for ( var k=0; k<options.value.length; k++ ){
 						nValue += options.value[k]?__scanValue(data[row][indexA[options.value[k]]]):1;
@@ -2238,7 +2238,7 @@ $Log:data.js,v $
 		 * @return the Data.Broker object
 		*/
 		addSource: function(szUrl,szType){
-			_LOG("Data.Broker: addSource:"+szUrl);
+			_LOG("Data.Broker.addSource: "+szUrl);
 			this.souceQueryA.push({
 				url:szUrl,
 				type:szType,
