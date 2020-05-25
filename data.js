@@ -29,7 +29,7 @@ $Log:data.js,v $
  *  var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/_data/issues.csv";
  *
  *  // load data from feed
- *  var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
+ *  var myfeed = Data.feed({"source":szUrl,"type":"csv"}).load(function(mydata){
  *
  *      // on data load succeeds, process the loaded data via mydata object
  *      // create new columns 'date' and 'hour' from one timestamp column
@@ -68,7 +68,7 @@ $Log:data.js,v $
  * });
  *
  * @author Guenter Richter guenter.richter@medienobjekte.de
- * @version 1.3 
+ * @version 1.34 
  * @copyright CC BY SA
  * @license MIT
  */
@@ -90,7 +90,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.33",
+		version: "1.36",
 		errors: []
 	};
 
@@ -263,6 +263,9 @@ $Log:data.js,v $
 			}else
 			if ( (option.type == "rss") || (option.type == "RSS") ){
 				this.__doRSSImport(szUrl,option);
+			}else
+			if ( (option.type == "kml") || (option.type == "KML") ){
+				this.__doKMLImport(szUrl,option);
 			}else
 			if ( (option.type == "json") || (option.type == "JSON") || (option.type == "Json")){
 				this.__doJSONImport(szUrl,option);
@@ -578,8 +581,8 @@ $Log:data.js,v $
 		// finish the data table object 
 		this.__createDataTableObject(newData,opt.type,opt);
 
-		delete csv;
-		delete newData;
+		csv = null;
+		newData = null;
 
 		return false;
 	};
@@ -647,15 +650,6 @@ $Log:data.js,v $
 		}
 	};
 
-		$.fn.filterNode = function(name) {
-			return this.find('*').filter(function() {
-				return this.nodeName === name;
-			});
-		};
-
-		$.fn.filterNodeGetFirst = function(name) {
-			return this.filterNode(name).first().text();
-		};
 	/**
 	 * __parseRSSData 
 	 * parse the loaded RSS xml data and create data object
@@ -719,6 +713,127 @@ $Log:data.js,v $
 				__this.__createDataTableObject(dataA,"rss",opt);
 
 			});
+		}
+	};
+
+	// ---------------------------------
+	// K M L
+	// ---------------------------------
+
+	/**
+	 * __doKMLImport 
+	 * reads KML feed from URL
+	 * parses the data into a table
+	 * @param szUrl kml feed url
+	 * @param opt optional options
+	 * @type void
+	 */
+	Data.Feed.prototype.__doKMLImport = function(szUrl,opt) {
+		
+		_LOG("__doKMLImport: "+szUrl);
+		var __this = this;
+
+		opt.format = "xml";
+
+		$.ajax({
+			type: "GET",
+			url: szUrl,
+			dataType: "xml",
+			success: function(data) {
+			__this.__processKMLData
+				(data,opt);
+			},
+			error: function(jqxhr, settings, exception) {
+				if ( (typeof(opt) != "undefined") && opt.error ){
+					opt.error(jqxhr, settings, exception);
+				}
+			}
+		});
+
+	};
+
+	/**
+	 * __processKMLData 
+	 * parse the loaded KML xml data and create data object
+	 * @param the kml object
+	 * @param opt optional options
+	 * @type void
+	 */
+	Data.Feed.prototype.__processKMLData = function(data,opt) {
+
+		if ( opt.format == "xml" ) {
+
+			var layerset = null;
+			var layer = null;
+			var fonte = null;
+
+			if ( $(data).find('kml').length ){
+				this.__parseKMLData(data,opt);
+			}else{
+				_alert("feed not kml");
+			}
+		}
+	};
+
+	/**
+	 * __parseRSSData 
+	 * parse the loaded RSS xml data and create data object
+	 * @param the rss object
+	 * @param opt optional options
+	 * @type void
+	 */
+	Data.Feed.prototype.__parseKMLData = function(data,opt){
+
+		var __this = this;
+
+		if ( opt.format == "xml" ) {
+
+			var layerset = null;
+			var layer = null;
+			var fonte = null;
+
+			var channelLat = null;
+			var channelLng = null;
+
+			var version = $(data).find('kml').attr("xmlns");
+			var document = $(data).find('Document')
+
+			var dataA = [];
+			var childNamesA = null;
+			
+			document.find('Placemark').each(function(){
+				
+				var xdata = $(this).find('ExtendedData') || $(this);
+				
+				// get item fieldnames from the first item of the channel
+				// ------------------------------------------------------
+				if ( !childNamesA ){ 
+					childNamesA = [];
+					xdata.find('Data').each(function(){
+						childNamesA.push($(this).attr("name"));
+					});
+					if ( $(this).find('Point').find('coordinates') ){
+						childNamesA.push('KML.Point');
+					}
+					dataA.push(childNamesA);
+				}
+
+				// make one item values
+				var row = [];
+				xdata.find('Data').each(function(){
+					row.push($(this).find("value").text());
+				});
+				if ( $(this).find('Point').find('coordinates') ){
+					row.push($(this).find('Point').find('coordinates').text());
+				}
+				dataA.push(row);
+
+			});
+			
+			console.log(dataA);
+			
+			__this.__createDataTableObject(dataA,"kml",opt);
+			
 		}
 	};
 
@@ -888,6 +1003,7 @@ $Log:data.js,v $
 		if (dataA){
 
 			this.dbtable = new Data.Table().setArray(dataA);
+			dataA = null;
 
 			if ( (typeof(opt) != "undefined") && opt.success ){
 				opt.success(this.dbtable);
@@ -972,13 +1088,14 @@ $Log:data.js,v $
 			}
 			// following rows => object.records
 			// --------------
+			dataA.shift();
+		
+			// set records checking length
 			this.records = [];
-			for ( var i=1; i<dataA.length; i++ ){
-				var valuesA = [];
-				for ( var a in dataA[i] ){
-					valuesA.push((typeof(dataA[i][a])=="string") ? (dataA[i][a].trim()) : (dataA[i][a]||" "));
+			for ( var r in dataA ){
+				if ( dataA[r].length == this.fields.length ) {
+					this.records.push(dataA[r]);
 				}
-				this.records.push(valuesA);
 			}
 			this.table = {records:this.records.length , fields:this.fields.length };
 			return this;
@@ -1095,6 +1212,13 @@ $Log:data.js,v $
 		 */
 		lookupArray: function(szValue,szLookup){
 			var lookupA = [];
+			if (!this.column(szLookup)){
+				alert("'"+szLookup+"' column not found!");
+			}
+			if (!this.column(szValue)){
+				alert("'"+szValue+"' column not found!");
+			}
+
 			var idA = this.column(szLookup).values();		
 			var valueA = this.column(szValue).values();
 			for ( i in idA ){
@@ -1150,11 +1274,11 @@ $Log:data.js,v $
 		 *
 		 */
 		addColumn: function(options,callback){
-
+			
 			if ( !options.destination ){
+				alert("'data.addColumn' no destination defined!");
 				return null;
 			}
-
 			var column = null;
 			if (options.source)	{
 				for (var i in this.fields ){
@@ -1163,45 +1287,22 @@ $Log:data.js,v $
 					}
 				}
 				if ( column == null ){
+					alert("'data.addColumn' source column '"+options.source+"' not found!");
 					return null;
 				}
 			}
 
-			this.__subt = new Data.Table;
-
-			// make fields (=column names)
-			// ----------------------------------
-			// copy orig column names 
-			for (var i in this.fields )	{
-				this.__subt.fields.push(this.fields[i]);
-				this.__subt.table.fields++;
-			}
 			// add new column name
-			this.__subt.fields.push({id:String(options.destination),created:true});
-			this.__subt.table.fields++;
+			this.fields.push({id:String(options.destination),created:true});
+			this.table.fields++;
 
-
-			// make records 
-			// ------------------
+			// add new column values
+			// ---------------------
 			for ( var j in this.records ){
-				var records = [];
-
-				// copy orig values 
-				for ( var i in this.fields ){
-					records.push(this.records[j][i]);
-				}
-				// add new column value
-				records.push((column!=null)?callback(this.records[j][column]):callback(this.records[j]));
-
-				// add row to table
-				this.__subt.records.push(records);
-				this.__subt.table.records++;
+				this.records[j].push((column!=null)?callback(this.records[j][column]):callback(this.records[j]));
 			}
-			this.table   = this.__subt.table;
-			this.fields  = this.__subt.fields;
-			this.records = this.__subt.records;
-
-			return this.__subt;
+			
+			return this;
 		},
 
 		/**
@@ -1285,6 +1386,8 @@ $Log:data.js,v $
 					}
 					this.filterQueryA = [];
 					var	filterObj = {};
+					
+					var szCombineOp = "";
 
 					// make the query object(s)
 					// ------------------------
@@ -1314,7 +1417,13 @@ $Log:data.js,v $
 								if ( this.fields[ii].id == filterObj.szSelectionField ){
 									filterObj.nFilterFieldIndex = ii;
 								}
+								if ( this.fields[ii].id == filterObj.szSelectionValue ){
+									filterObj.nFilterValueIndex = ii;
+								}
 							}
+							// set query combine operator 
+							filterObj.szCombineOp = szCombineOp;
+							
 							// add the query object
 							this.filterQueryA.push(filterObj);
 							szTokenA.splice(0,nToken);
@@ -1326,6 +1435,11 @@ $Log:data.js,v $
 						
 						// only 'AND' combination (OR tdb)
 						if ( szTokenA.length && (szTokenA[0] == "AND") ){
+							szCombineOp = "AND";
+							szTokenA.splice(0,1);
+						}else
+						if ( szTokenA.length && (szTokenA[0] == "OR") ){
+							szCombineOp = "OR";
 							szTokenA.splice(0,1);
 						}else{
 							break;
@@ -1339,7 +1453,7 @@ $Log:data.js,v $
 
 				for ( var i in this.filterQueryA ){
 					if ( typeof this.filterQueryA[i].nFilterFieldIndex === "undefined" ){
-						this.selection.fields = this.fields;
+						this.selection.fields = this.fields.slice();
 						this.selection.table.fields = this.table.fields;
 						_LOG("Selection: invalid query: "+szSelection);
 						return this.selection;
@@ -1348,7 +1462,7 @@ $Log:data.js,v $
 
 				for ( var j in this.records ){
 
-					var allResult = true;
+					var allResult = null;
 
 					for ( var i in this.filterQueryA ){
 
@@ -1358,7 +1472,13 @@ $Log:data.js,v $
 						this.__szSelectionOp	 = this.filterQueryA[i].szSelectionOp; 
 						this.__szSelectionValue = this.filterQueryA[i].szSelectionValue;
 						this.__szSelectionValue2 = this.filterQueryA[i].szSelectionValue2;
+						this.__szCombineOp	 = this.filterQueryA[i].szCombineOp; 
 
+						// GR 26.12.2019 filter value may be column name
+						if (this.filterQueryA[i].nFilterValueIndex != null){
+							this.__szSelectionValue = String(this.records[j][this.filterQueryA[i].nFilterValueIndex]);
+						}
+			
 						// do the query 
 						// ------------
 						var nValue = __scanValue(this.__szValue);
@@ -1403,7 +1523,11 @@ $Log:data.js,v $
 						// default operator	
 							result = eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
 						}
-						allResult = (allResult && result);
+						if ( this.__szCombineOp == "AND" ){
+							allResult = (allResult && result);
+						}else{
+							allResult = (allResult || result);
+						}
 					}
 					if ( allResult ){
 						this.selection.records.push(this.records[j]);
@@ -1411,7 +1535,7 @@ $Log:data.js,v $
 					}
 				}
 			}
-			this.selection.fields = this.fields;
+			this.selection.fields = this.fields.slice();
 			this.selection.table.fields = this.table.fields;
 			return this.selection; 
 		},
@@ -1554,11 +1678,11 @@ $Log:data.js,v $
 					for ( v in this.records[j] ){
 						if ( !keepIndexA[v] ) {
 							if ( !isNaN(this.records[j][v]) && (this.records[k][v] != this.records[j][v]) ){
-								this.records[k][v] += this.records[j][v];
+								this.records[k][v] = Number(this.records[k][v]) + Number(this.records[j][v]);
 							}else{
 								if ( isNaN(this.records[j][v]) && (this.records[k][v] != this.records[j][v]) ){
-									var n = parseFloat(this.records[k][v].split(" (+")[1])||0;
-									this.records[k][v] = this.records[k][v].split(" (+")[0] + " (+" + (++n) + ") ";
+									var n = parseFloat(String(this.records[k][v]).split(" (+")[1])||0;
+									this.records[k][v] = String(this.records[k][v]).split(" (+")[0] + " (+" + (++n) + ") ";
 								}
 							}
 						}
@@ -1914,7 +2038,32 @@ $Log:data.js,v $
 			}
 			this.records = records;
 			return this;
+		},
+		
+		/**
+		 * appends the rows of a data table to the actual tableby values of a given column
+		 * @param {Data.Table} the source of the rows to append
+		 * @type Data.Table
+		 * @return the extended table
+		 */
+		append: function(sourceTable){
+			console.log("test");
+			if ( this.table.fields.length != sourceTable.table.fields.length ){
+				return null;
+			}
+			for ( var i=0; i<this.table.fields.length; i++ )	{
+				if ( this.table.fields[i].id != sourceTable.table.fields[i].id ){
+					return null;
+				}
+			}
+			var records = sourceTable.records;
+			for ( var i=0; i<records.length; i++ )	{
+				this.records.push(records[i]);
+			}
+			this.table.records = this.records.length;
+			return this;
 		}
+
 
 	};
 
@@ -2074,7 +2223,7 @@ $Log:data.js,v $
 			// ----------------------
 			for ( var j in this.table.records ){
 				// query new column value by callback
-				this.table.records[j][this.index] = callback(this.table.records[j][this.index]);
+				this.table.records[j][this.index] = callback(this.table.records[j][this.index],this.table.records[j],this.index);
 			}
 
 			return this;
@@ -2091,6 +2240,23 @@ $Log:data.js,v $
 		rename: function(szName){
 
 			this.table.fields[this.index].id = szName;
+			return this;
+		},
+		
+		/**
+		 * remove the column
+		 * @type void
+		 * @return {Column}
+		 * @example
+		 *    mydata.column('timestamp').remove();
+		 */
+		remove: function(){
+
+			this.table.fields.splice(this.index,1);
+			for ( var j in this.table.records ){
+				this.table.records[j].splice(this.index,1);
+			}
+			//this.table.table.fields--;
 			return this;
 		}
 	};
