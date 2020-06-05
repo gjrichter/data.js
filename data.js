@@ -2256,7 +2256,7 @@ $Log:data.js,v $
 			for ( var j in this.table.records ){
 				this.table.records[j].splice(this.index,1);
 			}
-			//this.table.table.fields--;
+			this.table.table.fields--;
 			return this;
 		}
 	};
