@@ -90,7 +90,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.36",
+		version: "1.37",
 		errors: []
 	};
 
@@ -1849,11 +1849,8 @@ $Log:data.js,v $
 				for ( var k=1; k<options.lead.length; k++ ){
 					szRow += "|"+data[row][indexA[options.lead[k]]];
 				}
-				for ( var k=0; k<options.keep.length; k++ ){
-					szRow += "|"+data[row][indexA[options.keep[k]]];
-				}
-
-				var szCol  = String(data[row][indexA[options.cols[0]]]);
+                
+  				var szCol  = String(data[row][indexA[options.cols[0]]]);
 				
 				var nValue = 1;
 				if ( options.value && options.value.length ){
@@ -1933,11 +1930,9 @@ $Log:data.js,v $
 				}
 
 				// keep
-				/**
 				for ( var k=0; k<options.keep.length; k++ ){
 					valueA.push(rowA[a][options.keep[k]]);
 				}
-				**/
 				// sum
 				for ( var k=0; k<options.sum.length; k++ ){
 					valueA.push(rowA[a][options.sum[k]]);
