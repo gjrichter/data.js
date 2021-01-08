@@ -1883,7 +1883,7 @@ $Log:data.js,v $
 
 				if ( !rowA[szRow][szCol] ){
 					rowA[szRow][szCol] = nValue;
-					rowA[szRow][szCol+"count"] = 0;
+					rowA[szRow][szCol+"count"] = 1;
 				}else{
 					rowA[szRow][szCol] += nValue;
 					rowA[szRow][szCol+"count"]++;
