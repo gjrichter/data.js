@@ -1885,8 +1885,12 @@ $Log:data.js,v $
 					rowA[szRow][szCol] = nValue;
 					rowA[szRow][szCol+"count"] = 1;
 				}else{
-					rowA[szRow][szCol] += nValue;
-					rowA[szRow][szCol+"count"]++;
+					if (options.calc == "max"){
+						rowA[szRow][szCol] = Math.max(nValue,rowA[szRow][szCol]);
+					}else{
+						rowA[szRow][szCol] += nValue;
+						rowA[szRow][szCol+"count"]++;
+					}
 				}
 			}
 
