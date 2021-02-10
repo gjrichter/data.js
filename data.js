@@ -90,7 +90,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.37",
+		version: "1.38",
 		errors: []
 	};
 
@@ -905,7 +905,11 @@ $Log:data.js,v $
 		// json without database structure
 		// -------------------------------------------------
 		}else{
-
+			// if initial data object, take the data within
+			if ( data && data.data ){
+				data = data.data;
+			}
+			
 			for ( var a in data[0] ){
 				row.push(a);
 			}
@@ -1874,6 +1878,12 @@ $Log:data.js,v $
 						rowA[szRow][options.sum[k]] = Number(data[row][indexA[options.sum[k]]]);
 					}
 				}else{
+					for ( var k=0; k<options.keep.length; k++ ){
+						if (data[row][indexA[options.keep[k]]].length && 
+							(rowA[szRow][options.keep[k]] != data[row][indexA[options.keep[k]]])){
+							rowA[szRow][options.keep[k]] = data[row][indexA[options.keep[k]]];
+						}
+					}
 					for ( var k=0; k<options.sum.length; k++ ){
 						rowA[szRow][options.sum[k]] += Number(data[row][indexA[options.sum[k]]]);
 					}
@@ -2513,7 +2523,11 @@ $Log:data.js,v $
 				query.data = mydata;
 				query.result = "success";
 				query.next.realize();
-			}).error(this.onError);
+			}).error(function(e){
+				query.data = null;
+				query.result = "error";
+				query.next.realize();
+			});
 		};
 	/**
 	 * set the broker result as the new Data.Table in the parent Data.Feed object
