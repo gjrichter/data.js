@@ -873,7 +873,11 @@ $Log:data.js,v $
 	Data.Feed.prototype.__processJsonData = function(script,opt) {
 
 		if ( typeof(script) == "string" ){
-			eval("var data = "+script );
+			try {
+				var data = JSON.parse(script);
+			} catch (e) {
+				this.__createDataTableObject([],"json",opt);
+			}
 		}else{
 			var data = script;
 		}
@@ -965,7 +969,11 @@ $Log:data.js,v $
 	Data.Feed.prototype.__processGeoJsonData = function(script,opt) {
 
 		if ( typeof(script) == "string" ){
-			eval("var data = "+script );
+			try {
+				var data = JSON.parse(script);
+			} catch (e) {
+				this.__createDataTableObject([],"json",opt);
+			}
 		}else{
 			var data = script;
 		}
@@ -2389,7 +2397,9 @@ $Log:data.js,v $
 		this.options = options;
 		if ( options ){
 			this.parseDefinition(options);
-		}
+		} 
+		this.onNotify = function(){};
+		this.onError = function(){};
 	};
 
 	/**
@@ -2468,7 +2478,8 @@ $Log:data.js,v $
 			for ( var i in this.souceQueryA ){
 				if ( this.souceQueryA[i].url && !this.souceQueryA[i].result ){
 					this.getData(this.souceQueryA[i]);
-					return;
+					this.onNotify(i);
+					return this;
 				}
 			}
 			this.data = [];
@@ -2476,6 +2487,7 @@ $Log:data.js,v $
 				this.data.push(this.souceQueryA[i].data);
 			}
 			this.callback(this.data);
+			return this;
 		},
 
 		/**
@@ -2494,8 +2506,30 @@ $Log:data.js,v $
 		 *          ...
 		 *	});
 		 */
+		
 		error: function(onError){
 			this.onError = onError || this.onError; 
+			return this;
+		},
+		
+		/**
+		 * define notify function
+		 * @param {function(exeption)} onError a user defined function to call when notify occurs 
+		 * @type Data.Broker
+		 * @return the Data.Broker object
+		 * @example
+		 *	var broker = new Data.Broker()
+		 *      .addSource("https://raw.githubusercontent.com/ondata/elezionipolitiche2018/master/dati/scrutiniCI_cm.csv","csv")
+		 *
+		 *      .notify(function(e){alert(e);})
+		 *
+		 *      .realize(
+		 *	function(broker) {
+		 *          ...
+		 *	});
+		 */
+		notify: function(onNotify){
+			this.onNotify = onNotify || this.onNotify; 
 			return this;
 		}
 	};
