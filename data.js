@@ -2847,7 +2847,7 @@ $Log:data.js,v $
 
 	// alert handling
 	var _alert = function(szAlert){
-		alert("data.js v"+Data.version+": "+szAlert);
+		console.log("data.js v"+Data.version+": "+szAlert);
 	};
 
 /**
