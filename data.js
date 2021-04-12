@@ -2685,6 +2685,10 @@ $Log:data.js,v $
 
 			for ( i in this.sourceA ){
 
+				if ( !this.sourceA[i].opt.columns ){
+					this.sourceA[i].opt.columns = this.sourceA[i].data.columnNames?this.sourceA[i].data.columnNames():[];
+				}
+				
 				if ( !this.sourceA[i].data[0] ){
 					this.sourceA[i].data = this.sourceA[i].data.getArray(); 
 				}
@@ -2696,7 +2700,7 @@ $Log:data.js,v $
 				if ( !this.sourceA[i].opt.label ){
 					this.sourceA[i].opt.label = [];
 				}
-
+				
 				var index = [];
 				for ( ii in this.sourceA[i].data[0] )	{
 
