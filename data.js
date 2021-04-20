@@ -94,8 +94,6 @@ $Log:data.js,v $
 		errors: []
 	};
 
-	var Papa = null;
-	
 	function expose() {
 		var oldData = window.Data;
 
@@ -514,7 +512,7 @@ $Log:data.js,v $
 		// GR 02.11.2015 nuovo csv parser Papa Parse by Matt Hold 
 		// GR 21.07.2016 if autodecet delimiter fails, try first ; and then ,   
 
-		if ( (Papa == null) || (typeof(Papa) == "undefined") ){
+		if ( typeof(Papa) == "undefined" ){
 			__this = this;
 			$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
 			.done(function(script, textStatus) {
