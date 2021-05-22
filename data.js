@@ -165,12 +165,23 @@ $Log:data.js,v $
 			// pass options to the Data.feed
 			feed.options = this.options;
 
-			// import json and create table, calls the callback when done
-			feed.__processJsonData(this.options.source,this.options);
-
-			// supports only json objects 
-			// TBD: maybe CSV arrays, text
-
+			// import data and create table, calls the callback when done
+			if ( (this.options.type == "csv") || (this.options.type == "CSV") ){
+				feed.__processCSVData(this.options.source,this.options);
+			}else
+			if ( (this.options.type == "rss") || (this.options.type == "RSS") ){
+				feed.__processRSSData(this.options.source,this.options);
+			}else
+			if ( (this.options.type == "kml") || (this.options.type == "KML") ){
+				feed.__processKMLData(this.options.source,this.options);
+			}else
+			if ( (this.options.type == "json") || (this.options.type == "JSON") || (this.options.type == "Json")){
+				feed.__processJsonData(this.options.source,this.options);
+			}else
+			if ( (this.options.type == "geojson") || (this.options.type == "GEOJSON") || (this.options.type == "GeoJson")){
+				feed.__processGeoJsonData(this.options.source,this.options);
+			}
+			
 			return this;
 		},
 		/**
@@ -959,7 +970,7 @@ $Log:data.js,v $
 
 	}
 	/** 
-	 * __processJsonData 
+	 * __processGeoJsonData 
 	 * reads a simple JSON table 
 	 * parses the data into the map data source
 	 * @param file filename
