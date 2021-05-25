@@ -160,26 +160,26 @@ $Log:data.js,v $
 			this.options.success = callback;
 
 			// we create a dummy Data.feed to use its parser
-			var feed = Data.feed({});
+			this.feed = Data.feed({});
 
 			// pass options to the Data.feed
-			feed.options = this.options;
+			this.feed.options = this.options;
 
 			// import data and create table, calls the callback when done
 			if ( (this.options.type == "csv") || (this.options.type == "CSV") ){
-				feed.__processCSVData(this.options.source,this.options);
+				this.feed.__processCSVData(this.options.source,this.options);
 			}else
 			if ( (this.options.type == "rss") || (this.options.type == "RSS") ){
-				feed.__processRSSData(this.options.source,this.options);
+				this.feed.__processRSSData(this.options.source,this.options);
 			}else
 			if ( (this.options.type == "kml") || (this.options.type == "KML") ){
-				feed.__processKMLData(this.options.source,this.options);
+				this.feed.__processKMLData(this.options.source,this.options);
 			}else
 			if ( (this.options.type == "json") || (this.options.type == "JSON") || (this.options.type == "Json")){
-				feed.__processJsonData(this.options.source,this.options);
+				this.feed.__processJsonData(this.options.source,this.options);
 			}else
 			if ( (this.options.type == "geojson") || (this.options.type == "GEOJSON") || (this.options.type == "GeoJson")){
-				feed.__processGeoJsonData(this.options.source,this.options);
+				this.feed.__processGeoJsonData(this.options.source,this.options);
 			}
 			
 			return this;
