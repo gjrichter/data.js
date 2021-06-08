@@ -1000,8 +1000,8 @@ $Log:data.js,v $
 
 		for ( var i=0; i<data.features.length; i++ ){
 			row = [];
-			for ( p in data.features[i].properties ){
-				row.push(data.features[i].properties[p]);
+			for ( p=0; p<dataA[0].length-1; p++ ){
+				row.push(data.features[i].properties[dataA[0][p]]||"");
 			}
 			row.push(JSON.stringify(data.features[i].geometry));
 			dataA.push(row);
@@ -2564,10 +2564,11 @@ $Log:data.js,v $
 	 * @type void
 	*/
 		Data.Broker.prototype.getData = function(query){
-			Data.feed({"source":query.url,"type":query.type}).load(function(mydata){
+			query.feed = Data.feed({"source":query.url,"type":query.type}).load(function(mydata){
 				query.data = mydata;
 				query.result = "success";
 				query.next.realize();
+				query.data.raw = query.feed.data;
 			}).error(function(e){
 				query.data = null;
 				query.result = "error";
