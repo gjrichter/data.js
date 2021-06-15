@@ -992,7 +992,13 @@ $Log:data.js,v $
 
 		var dataA = [];
 		var row = [];
-		for ( p in data.features[0].properties ){
+		var columns = [];
+		for ( i = 0; i< data.features.length; i++ ){
+			for ( p in data.features[i].properties ){
+				columns[p] = true;
+			}
+		}
+		for ( p in columns ){
 			row.push(p);
 		}
 		row.push("geometry");
