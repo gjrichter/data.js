@@ -993,26 +993,28 @@ $Log:data.js,v $
 		var dataA = [];
 		var row = [];
 		var columns = [];
-		for ( i = 0; i< data.features.length; i++ ){
-			for ( p in data.features[i].properties ){
-				columns[p] = true;
+		
+		if ( data && data.features && data.features.length ){
+			for ( i = 0; i< data.features.length; i++ ){
+				for ( p in data.features[i].properties ){
+					columns[p] = true;
+				}
 			}
-		}
-		for ( p in columns ){
-			row.push(p);
-		}
-		row.push("geometry");
-		dataA.push(row);
-
-		for ( var i=0; i<data.features.length; i++ ){
-			row = [];
-			for ( p=0; p<dataA[0].length-1; p++ ){
-				row.push(data.features[i].properties[dataA[0][p]]||"");
+			for ( p in columns ){
+				row.push(p);
 			}
-			row.push(JSON.stringify(data.features[i].geometry));
+			row.push("geometry");
 			dataA.push(row);
-		}
 
+			for ( var i=0; i<data.features.length; i++ ){
+				row = [];
+				for ( p=0; p<dataA[0].length-1; p++ ){
+					row.push(data.features[i].properties[dataA[0][p]]||"");
+				}
+				row.push(JSON.stringify(data.features[i].geometry));
+				dataA.push(row);
+			}
+		}
 		// finish the data table object 
 		this.__createDataTableObject(dataA,"json",opt);
 	}
