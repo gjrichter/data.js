@@ -2111,7 +2111,7 @@ $Log:data.js,v $
 			this.__json = [];
 			for ( var r in this.records ){
 				var row = {};
-				for ( var c=0; i<this.table.fields.length; c++ )	{
+				for ( var c=0; c<this.table.fields.length; c++ )	{
 					row[this.table.fields[c].id] = this.records[r][c];
 				}
 				this.__json.push(row);
