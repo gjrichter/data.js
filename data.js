@@ -2107,6 +2107,8 @@ $Log:data.js,v $
 		 * { name_1: value_1, name_2: value_2, ... }
 		 */
 		json: function(){
+			
+			alert("hi");
 
 			this.__json = [];
 			for ( var r in this.records ){
