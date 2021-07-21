@@ -2098,10 +2098,7 @@ $Log:data.js,v $
 			}
 			this.table.records = this.records.length;
 			return this;
-		}
-
-
-	};
+		},
 
 		/**
 		 * creates a json object array from the table <br>
@@ -2120,7 +2117,10 @@ $Log:data.js,v $
 				this.__json.push(row);
 			}
 			return this.__json;
-		},
+		}
+
+	};
+
 
 	//...................................................................
 	// local helper
