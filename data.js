@@ -2108,7 +2108,7 @@ $Log:data.js,v $
 		 */
 		json: function(){
 			
-			alert("hi");
+			console.log("---->>>>>");
 
 			this.__json = [];
 			for ( var r in this.records ){
