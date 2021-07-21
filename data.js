@@ -2113,7 +2113,7 @@ $Log:data.js,v $
 			this.__json = [];
 			for ( var r in this.records ){
 				var row = {};
-				console.log(this.table.fields.length);
+				console.log(this.table.fields);
 				for ( var c=0; c<this.table.fields.length; c++ )	{
 					console.log(this.table.fields[c].id);
 					console.log(this.records[r][c]);
