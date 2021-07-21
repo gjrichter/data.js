@@ -2103,6 +2103,25 @@ $Log:data.js,v $
 
 	};
 
+		/**
+		 * creates a json object array from the table <br>
+		 * every row creates an array element 
+		 * array elements are of type:
+		 * { name_1: value_1, name_2: value_2, ... }
+		 */
+		json: function(){
+
+			this.__json = [];
+			for ( var r in this.records ){
+				var row = {};
+				for ( var c=0; i<this.table.fields.length; c++ )	{
+					row[this.table.fields[c].id] = this.records[r][c];
+				}
+				this.__json.push(row);
+			}
+			return this.__json;
+		},
+
 	//...................................................................
 	// local helper
 	//...................................................................
