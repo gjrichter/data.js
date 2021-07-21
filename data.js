@@ -2118,6 +2118,7 @@ $Log:data.js,v $
 					console.log(this.records[r][c]);
 					row[String(this.table.fields[c].id)] = this.records[r][c];
 				}
+				console.log(row);
 				this.__json.push(row);
 			}
 			return this.__json;
