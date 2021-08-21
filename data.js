@@ -90,7 +90,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.38",
+		version: "1.39",
 		errors: []
 	};
 
@@ -1702,28 +1702,33 @@ $Log:data.js,v $
 					keepIndexA[this.columnIndex(option.keep[i])] = true;
 				}
 			}
+			var __newRecords = [];
 			for ( var j=0; j<this.records.length; j++ ){
 				var szTest = String(this.records[j][uniqueIndex]);
 				if ( uniqueA[szTest] != null ){
 					var k = uniqueA[szTest];
 					for ( v in this.records[j] ){
 						if ( !keepIndexA[v] ) {
-							if ( !isNaN(this.records[j][v]) && (this.records[k][v] != this.records[j][v]) ){
-								this.records[k][v] = Number(this.records[k][v]) + Number(this.records[j][v]);
+							if ( !isNaN(this.records[j][v]) && (__newRecords[k][v] != this.records[j][v]) ){
+								if (option && option.calc == "max"){
+									__newRecords[k][v] = Math.max(Number(__newRecords[k][v]),Number(this.records[j][v]));
+								}else{
+									__newRecords[k][v] = Number(__newRecords[k][v]) + Number(this.records[j][v]);
+								}
 							}else{
-								if ( isNaN(this.records[j][v]) && (this.records[k][v] != this.records[j][v]) ){
-									var n = parseFloat(String(this.records[k][v]).split(" (+")[1])||0;
-									this.records[k][v] = String(this.records[k][v]).split(" (+")[0] + " (+" + (++n) + ") ";
+								if ( isNaN(this.records[j][v]) && (__newRecords[k][v] != this.records[j][v]) ){
+									var n = parseFloat(String(__newRecords[k][v]).split(" (+")[1])||0;
+									__newRecords[k][v] = String(__newRecords[k][v]).split(" (+")[0] + " (+" + (++n) + ") ";
 								}
 							}
 						}
 					}				
-					this.records.splice(j,1);
-					j--;
 				}else{
-					uniqueA[szTest] = j;
+					__newRecords.push(this.records[j].slice());
+					uniqueA[szTest] = __newRecords.length-1;
 				}
 			}
+			this.records = __newRecords.slice();
 			return this;
 		},
 
