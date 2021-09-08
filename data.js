@@ -324,22 +324,31 @@ $Log:data.js,v $
 
 	// @section
 
-	// @factory Data.feed(id: String, options?: Data options)
-	// Instantiates a data object given id == name
+	// @factory Data.feed(options: Data options)
+	// Instantiates a data object to load external data via URL
 	// and an object literal with `data options`.
 	//
 
-	Data.feed = function (id, options) {
-		return new Data.Feed(id, options);
+	Data.feed = function (options) {
+		return new Data.Feed(options);
 	};
 
-	// @factory Data.feed(id: String, options?: Data options)
-	// Instantiates a data object given id == name
+	// @factory Data.object(options: Data options)
+	// Instantiates a data object
 	// and an object literal with `data options`.
 	//
 
-	Data.object = function (id, options) {
-		return new Data.Object(id, options);
+	Data.object = function (options) {
+		return new Data.Object(options);
+	};
+
+	// @factory Data.import(options: Data options)
+	// Instantiates a data object to import data into Data
+	// and an object literal with `data options`.
+	//
+
+	Data.import = function (options) {
+		return new Data.Object(options).import().feed.dbtable;
 	};
 
 
