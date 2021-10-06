@@ -1613,6 +1613,15 @@ $Log:data.js,v $
 		 *
 		 */
 		aggregate: function(szColumn,szAggregate){
+			
+			var mean = false;
+			
+			// GR 06.09.2021 new argument object {}
+			if (szColumn.lead){
+				mean = (szColumn.calc && (szColumn.calc == "mean"));
+				szAggregate = szColumn.lead;
+				szColumn = szColumn.column; 
+			}
 
 			var szAggregateA = szAggregate.split("|");
 			var nAggregateIndexA = [];
@@ -1633,6 +1642,7 @@ $Log:data.js,v $
 			this.aggregation = new Data.Table;
 
 			xRecords = [];
+			xCount = [];
 			for ( var j in this.records ){
 				xField = ""
 				for ( var i=0; i<nAggregateIndexA.length; i++ ){
@@ -1640,16 +1650,22 @@ $Log:data.js,v $
 				}
 				if ( xRecords[xField] ){
 					xRecords[xField][nAggregateIndexA.length] += __scanValue(this.records[j][nValueIndex]);
+					xCount[xField][nAggregateIndexA.length]++;
 				}else{
 					xRecords[xField] = [];
 					xRecords[xField][nAggregateIndexA.length] = __scanValue(this.records[j][nValueIndex]);
 					for ( var i=0; i<nAggregateIndexA.length; i++ ){
 						xRecords[xField][i] = this.records[j][nAggregateIndexA[i]];
 					}
+					xCount[xField] = [];
+					xCount[xField][nAggregateIndexA.length] = 1;
 				}
 			}
 
 			for ( var j in xRecords ){
+				if (mean){
+					xRecords[j][nAggregateIndexA.length] /= xCount[j][nAggregateIndexA.length];
+				}
 				this.aggregation.records.push(xRecords[j]);
 				this.aggregation.table.records++;
 			}
