@@ -16,13 +16,13 @@ $Log:data.js,v $
 /** 
  * @fileoverview
  * provides an object and methods to load, parse and process various data sources.<br>
- * The <b>sources</b> may be of the following type: <b>csv</b>, <b>json</b>, <b>jsonStat</b>, <b>FusionTable</b> e <b>RSS</b>.<br>
+ * The <b>sources</b> may be of the following type: <b>csv</b>, <b>json</b>, <b>geojson</b>, <b>kml</b> e <b>rss</b>.<br>
  * The <b>methods</b> to load data are: 
  * <ul><li>Data.<b>feed()</b> to load from url</li>
- * <li>Data.<b>object()</b> to import javascript objects and</li>
+ * <li>Data.<b>import()</b> to import javascript objects and</li>
  * <li>Data.<b>broker()</b> to load more than one source</li></ul>
  * The loaded data is stored in a Table object which gives the user the methods to transform the data.<br>
- * The json format of the data of a Table object is jsonDB, the same format used internaly iXmaps.
+ * The format of the data of a Table object is jsonDB, the same format used internaly by iXmaps.
  * @example 
  *
  *  // define data source
@@ -120,15 +120,17 @@ $Log:data.js,v $
 	}
 
 	/**
-	 * Create a new Data.Import instance.  
+	 * Create a new Data.Object instance.  
 	 * @class It realizes an object to load and handle internal (already defined as JavaScript object) data sources (CSV,JSON,...)
-	 * @todo implement csv import; <b>currently only type json is supported !!!</b> 
 	 * @constructor
 	 * @param {Object} options <p>{ <b>source</b>: <em>JavaScript object</em>,
-	 *                                <b>type</b>: <em>see table below</em> }</p>
 	 *								   <table border='0' style='border-left: 1px solid #ddd;'>	
 	 *								   <tr><th>type</th><th>description</th></tr>
+	 *								   <tr><td><b>"csv"</b></td><td>the source is 'plain text' formatted as Comma Separated Values<br>delimiter supported: , and ;</td></tr>
 	 *								   <tr><td><b>"json"</b></td><td>the source is JSON (Javascript Object Notation)</td></tr>
+	 *								   <tr><td><b>"geojson"</b></td><td>the source is a JSON object formatted in <a href="https://geojson.org/" target="_blank">GeoJson</a></td></tr>
+	 *								   <tr><td><b>"rss"</b></td><td>the source is an xml rss feed</td></tr>
+	 *								   <tr><td><b>"kml"</b></td><td>the source is in Keyhole Markup Language</td></tr>
 	 *								   </table> 
 	 * @type Data.Object
 	 * @example
@@ -197,6 +199,32 @@ $Log:data.js,v $
 		}
 	};
 
+	/**
+	 * Create a new Data.Import instance.  
+	 * @class It realizes an object to load and handle internal (already defined as JavaScript object) data sources (CSV,JSON,...)
+	 * @constructor
+	 * @param {Object} options <p>{ <b>source</b>: <em>JavaScript object</em>,
+	 *								   <table border='0' style='border-left: 1px solid #ddd;'>	
+	 *								   <tr><th>type</th><th>description</th></tr>
+	 *								   <tr><td><b>"csv"</b></td><td>the source is 'plain text' formatted as Comma Separated Values<br>delimiter supported: , and ;</td></tr>
+	 *								   <tr><td><b>"json"</b></td><td>the source is JSON (Javascript Object Notation)</td></tr>
+	 *								   <tr><td><b>"geojson"</b></td><td>the source is a JSON object formatted in <a href="https://geojson.org/" target="_blank">GeoJson</a></td></tr>
+	 *								   <tr><td><b>"rss"</b></td><td>the source is an xml rss feed</td></tr>
+	 *								   </table> 
+	 * @type Data.Object
+	 * @example
+	 * // load the data table defined by a JSON object named response and get the values of one column 
+	 *
+	 * table = Data.import({"source":response,"type":"json"});
+	 *
+	 * var a = table.column("column name").values();
+	 * @return A new Table object
+	 */
+
+	Data.Import = function (options) {
+		this.options = options;
+		this.debug = false;
+		};
 
 	/**
 	 * Create a new Data.Feed instance.  
@@ -554,8 +582,8 @@ $Log:data.js,v $
 			if ( opt.error ){
 				opt.error(newData);
 			}
-			delete csv;
-			delete newData;
+			//delete csv;
+			//delete newData;
 			return false;
 		}
 
@@ -1199,7 +1227,8 @@ $Log:data.js,v $
 		},
 
 		/**
-		 * get a column object for one column from the Data.Table. With the column object you can read or map the column values.
+		 * get a column object for one column from the Data.Table<br>
+		 * the column object provides methods to read or map the column values
 		 * @param {String} columnName the name of the column to get a handle to
 		 * @type {Column}
 		 * @return {Column} Data.Column object
@@ -1251,6 +1280,13 @@ $Log:data.js,v $
 		 *
 		 */
 		lookupArray: function(szValue,szLookup){
+			
+			// GR 06.09.2021 new argument object {}
+			if (szValue && szValue.key){
+				szLookup = szValue.key;
+				szValue  = szValue.value; 
+			}
+
 			var lookupA = [];
 			if (!this.column(szLookup)){
 				alert("'"+szLookup+"' column not found!");
@@ -1717,6 +1753,12 @@ $Log:data.js,v $
 			var uniqueIndex = this.columnIndex(szColumn);
 			var keepIndexA = [];
 
+			// GR 06.09.2021 new argument object {}
+			if (szColumn && szColumn.lead){
+				option = szColumn;
+				szColumn = option.lead;
+			}
+
 			if ( option && option.keep ){
 				// option.keep is string
 				if ( typeof(option.keep) == "string" ){
@@ -1844,7 +1886,7 @@ $Log:data.js,v $
 			 * make sure, object is type array 
 			 * @parameter obj the object to transform
 			 * @return array
-			 * @type array of string
+			 * @type array
 			 */
 			__toArray = function (obj) {
 				if ( !obj || typeof(obj) == 'undefined' ){
@@ -2732,9 +2774,9 @@ $Log:data.js,v $
 		},
 
 		/**
-		 * start the merger<br>
-		 * initiate the process to merge the sources guided by the lookup column, inserting all columns that have been
-		 * defined by .addSource(), or a subset of them defined by .setOutputColumns()
+		 * initiates the process of merging the sources, guided by the lookup column,
+		 * inserting all columns that have been defined by .addSource(), or a subset<br>
+		 * of them defined by .setOutputColumns()
 		 * @param {function} callback user defined function which receives as argument the merged table 
 		 * @type void
 		 * @see {@link Data.Merger.setCallback}
