@@ -1656,7 +1656,7 @@ $Log:data.js,v $
 			if (szColumn.lead){
 				mean = (szColumn.calc && (szColumn.calc == "mean"));
 				szAggregate = szColumn.lead;
-				szColumn = szColumn.column; 
+				szColumn = szColumn.column || szColumn.value; 
 			}
 
 			var szAggregateA = szAggregate.split("|");
