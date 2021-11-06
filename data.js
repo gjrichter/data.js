@@ -1750,7 +1750,6 @@ $Log:data.js,v $
 		condense: function(szColumn,option){
 
 			var uniqueA = {};
-			var uniqueIndex = this.columnIndex(szColumn);
 			var keepIndexA = [];
 
 			// GR 06.09.2021 new argument object {}
@@ -1758,6 +1757,8 @@ $Log:data.js,v $
 				option = szColumn;
 				szColumn = option.lead;
 			}
+
+			var uniqueIndex = this.columnIndex(szColumn);
 
 			if ( option && option.keep ){
 				// option.keep is string
