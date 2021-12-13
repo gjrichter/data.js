@@ -85,12 +85,50 @@ $Log:data.js,v $
 		console.log("_LOG: time[sec.ms] "+time+" "+szLog);
 	};
 
+	// force string arrays 
+
+	/**
+	 * test if object is array 
+	 * @parameter obj the object to test
+	 * @return true/false
+	 * @type boolean
+	 */
+	__isArray = function (obj) {
+		return Object.prototype.toString.call(obj) === '[object Array]';
+	};
+	/**
+	 * make sure, object is type array 
+	 * @parameter obj the object to transform
+	 * @return array
+	 * @type array
+	 */
+	__toArray = function (obj) {
+		if ( !obj || typeof(obj) == 'undefined' ){
+			return [];
+		} else
+		if (__isArray(obj)) {
+			return obj;
+		} else {
+			return (String(obj).match(/\|/)) ? String(obj).split('|') : String(obj).split(',');
+		}
+	};
+
+	/**
+	 * get array with unique values
+	 * by filter function 
+	 * @return array
+	 * @type array
+	 */
+	__onlyUnique = function (value, index, self) {
+		return self.indexOf(value) === index;
+	};
+	
 	/** 
 	 * @namespace 
 	 */
 
 	var Data = {
-		version: "1.39",
+		version: "1.40",
 		errors: []
 	};
 
@@ -1801,6 +1839,39 @@ $Log:data.js,v $
 		},
 
 		/**
+		 * creates a new column based on existing ones<br>
+		 * the values of the new column are the sum of the source columns
+		 * @param {object} options the creation parameter
+		 *								   <table border='0' style='border-left: 1px solid #ddd;'>	
+		 *								   <tr><th>property</th><th>description</th></tr>
+		 *								   <tr><td><b>"source"</b></td><td>the name of the source columns </td></tr>
+		 *								   <tr><td><b>"destination"</b></td><td>the name of the new colmn to create</td></tr>
+		 *								   </table> 
+		 * @type {Data.Table}
+		 * @return {Data.Table} the enhanced table
+		 * @example
+		 *    mydata = mydata.groupColumns({'source':['col_1','col_2'],'destination':'col_sum'});
+		 *
+		 */
+		groupColumns: function(options){
+			
+			var sourceA = options.source;
+			var iA = [];
+			for ( i in sourceA ){
+				iA[i] = this.column(sourceA[i]).index;
+			}
+			this.addColumn({destination:options.destination},function(row){
+				var value = 0;
+				for ( i in iA ){
+					value += Number(row[iA[i]]);
+				}
+				return value;
+			});
+			
+			return this;
+		},
+
+		/**
 		 * creates a pivot table <br>
 		 * @param {Object} options the pivot creation parameter
 		 *<table class="w3-table-all notranslate">
@@ -1873,32 +1944,6 @@ $Log:data.js,v $
 			options.sum  = options.sum  || [];
 
 			// force string arrays 
-
-			/**
-			 * test if object is array 
-			 * @parameter obj the object to test
-			 * @return true/false
-			 * @type boolean
-			 */
-			__isArray = function (obj) {
-				return Object.prototype.toString.call(obj) === '[object Array]';
-			};
-			/**
-			 * make sure, object is type array 
-			 * @parameter obj the object to transform
-			 * @return array
-			 * @type array
-			 */
-			__toArray = function (obj) {
-				if ( !obj || typeof(obj) == 'undefined' ){
-					return [];
-				} else
-				if (__isArray(obj)) {
-					return obj;
-				} else {
-					return (String(obj).match(/\|/)) ? String(obj).split('|') : String(obj).split(',');
-				}
-			};
 
 			options.lead = __toArray(options.lead);
 			options.cols = __toArray(options.cols);
@@ -2331,6 +2376,22 @@ $Log:data.js,v $
 				this.valueA.push(this.table.records[i][this.index]);
 			}
 			return this.valueA;
+		},
+
+		/**
+		 * get the values of the column
+		 * <br>
+		 * @type array
+		 * @return {array} an array with the values of the column
+		 * @example
+		 *    var sumArray = mydata.column('total').values();
+		 */
+		uniqueValues: function(){
+			this.valueA = [];
+			for ( var i in this.table.records ){
+				this.valueA.push(this.table.records[i][this.index]);
+			}
+			return this.valueA.filter(__onlyUnique);
 		},
 
 		/**
@@ -2796,9 +2857,17 @@ $Log:data.js,v $
 			var indexAA = []; 
 
 			for ( i in this.sourceA ){
+				
+				var source = this.sourceA[i];
 
-				if ( !this.sourceA[i].opt.columns ){
-					this.sourceA[i].opt.columns = this.sourceA[i].data.columnNames?this.sourceA[i].data.columnNames():[];
+				source.opt.columns = source.opt.columns || source.data.columnNames || source.data.columnNames();
+				source.opt.label   = source.opt.label || [];
+
+				source.opt.columns = __toArray(source.opt.columns);
+				source.opt.label   = __toArray(source.opt.label);
+
+				if ( !this.sourceA[i].data ){
+					_alert("DataMerger: source '"+i+"' not found");
 				}
 				
 				if ( !this.sourceA[i].data[0] ){
@@ -2809,10 +2878,6 @@ $Log:data.js,v $
 					_alert("DataMerger: source '"+i+"' not found or not of type Array");
 				}
 
-				if ( !this.sourceA[i].opt.label ){
-					this.sourceA[i].opt.label = [];
-				}
-				
 				var index = [];
 				for ( ii in this.sourceA[i].data[0] )	{
 
