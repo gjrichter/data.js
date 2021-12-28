@@ -1,16 +1,16 @@
 ## data.js
 
-a little javascript lib to load and handle data tables
-This library provides methods for operating on columnar data
+a little javascript lib to load and transform data.
+This library provides methods for operating on two dimensional tables.
 
-Reads open formats like csv and json from an URL and calls a user defined function on success with a table object.
-This table object provides several methods to explore and handle the data.
+Reads open formats like csv and json from an URL, or import existent json objects into the Data Object .
+The Data object provides several methods like select or pivot to explore and handle the table data.
 
 To see a **demo** click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
 ### usage sample
 
-```
+```javascript
 var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/data/issues.csv";
 var myfeed = Data.feed({"source":szUrl,"type":"csv"}).load(function(mydata){
 
@@ -19,7 +19,6 @@ var myfeed = Data.feed({"source":szUrl,"type":"csv"}).load(function(mydata){
     
     // get a new table with rows selected by the value of the column 'labels'
     var newTable = mydata.select("WHERE labels like Facebook"); 
-    var numberOfRows = newTable.table.records;
     
     ...   
 };
@@ -36,6 +35,3 @@ the demo depends also on:
 - css from Flat Admin V.2 - Free Bootstrap Admin Templates
 
 
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE0OTkwNjY2MjYsNDMyNjc2ODExXX0=
--->

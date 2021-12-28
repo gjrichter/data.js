@@ -220,6 +220,9 @@ $Log:data.js,v $
 			}else
 			if ( (this.options.type == "geojson") || (this.options.type == "GEOJSON") || (this.options.type == "GeoJson")){
 				this.feed.__processGeoJsonData(this.options.source,this.options);
+			}else
+			if ( (this.options.type == "topojson") || (this.options.type == "TOPOJSON") || (this.options.type == "TopoJson")){
+				this.feed.__processTopoJsonData(this.options.source,this.options);
 			}
 			
 			return this;
@@ -349,6 +352,9 @@ $Log:data.js,v $
 			}else
 			if ( (option.type == "geojson") || (option.type == "GEOJSON") || (option.type == "GeoJson")){
 				this.__doGeoJSONImport(szUrl,option);
+			}else
+			if ( (option.type == "topojson") || (option.type == "TOPOJSON") || (option.type == "TopoJson")){
+				this.__doTopoJSONImport(szUrl,option);
 			}else
 			if ( (option.type == "jsonDB") || (option.type == "JSONDB") || (option.type == "JsonDB") || (option.type == "jsondb") ){
 				this.__doJsonDBImport(szUrl,option);
@@ -1094,6 +1100,75 @@ $Log:data.js,v $
 		this.__createDataTableObject(dataA,"json",opt);
 	}
 
+	// ---------------------------------
+	// T O P O - J S O N  
+	// ---------------------------------
+
+	/** 
+	 * __doTopoJSONImport 
+	 * reads a topojson feed 
+	 * parses the data into the map data source
+	 * @param file filename
+	 * @param i filenumber
+	 * @type void
+	 */
+	Data.Feed.prototype.__doTopoJSONImport = function(szUrl,opt) {
+
+		var __this = this;
+		$.get(szUrl,
+			function(data){
+				__this.__processTopoJsonData(data,opt);
+			}).fail(function(e) { 
+				if ( (typeof(opt) != "undefined") && opt.error ){
+					opt.error(e);
+				}
+			});
+
+	}
+	/** 
+	 * __processTopoJsonData 
+	 * parses topojson data into the map data source
+	 * @param file filename
+	 * @param i filenumber
+	 * @type void
+	 */
+	Data.Feed.prototype.__processTopoJsonData = function(script,opt) {
+
+		if ( typeof(topojson) == "undefined" ){
+			_alert("'"+opt.type+"' parser not loaded !");
+			return;
+		}
+
+		if ( typeof(script) == "string" ){
+			try {
+				var data = JSON.parse(script);
+			} catch (e) {
+				this.__createDataTableObject([],"json",opt);
+			}
+		}else{
+			var data = script;
+		}
+		this.data = data;
+		
+		console.log("------ !!! ------");
+		console.log(data);
+		console.log("------ !!! ------");
+		
+		var topoObject = null;
+
+		for ( i in data.objects ){
+			topoObject = topojson.feature(data, data.objects[i]);
+			break;
+		}
+
+		for ( var i in topoObject.features){
+			topoObject.features[i].properties.id = topoObject.features[i].id;  
+		}
+		
+		this.__processGeoJsonData(topoObject,opt);	
+	}
+
+	
 
 	// ---------------------------------
 	// C R E A T E   D A T A   T A B L E 
