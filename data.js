@@ -1890,7 +1890,7 @@ $Log:data.js,v $
 					var k = uniqueA[szTest];
 					for ( v in this.records[j] ){
 						if ( !keepIndexA[v] ) {
-							if ( !isNaN(this.records[j][v]) && (__newRecords[k][v] != this.records[j][v]) ){
+							if ( !isNaN(this.records[j][v]) ){
 								if (option && option.calc == "max"){
 									__newRecords[k][v] = Math.max(Number(__newRecords[k][v]),Number(this.records[j][v]));
 								}else{
