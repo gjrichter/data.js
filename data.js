@@ -128,7 +128,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.40",
+		version: "1.41",
 		errors: []
 	};
 
@@ -619,6 +619,8 @@ $Log:data.js,v $
 		}
 		
 		var newData = Papa.parse(csv,opt.parser).data;
+		
+		_LOG("csv parser: done");
 
 		if ( typeof(newData[0]) == "undefined" || 
 			 typeof(newData[1]) == "undefined"){
@@ -1156,6 +1158,11 @@ $Log:data.js,v $
 		
 		var topoObject = null;
 
+		// select topojson object by given name
+		if ( opt.options.name && data.objects[opt.options.name] ){
+			topoObject = topojson.feature(data, data.objects[opt.options.name]);
+		}else
+		// or take the first object
 		for ( i in data.objects ){
 			topoObject = topojson.feature(data, data.objects[i]);
 			break;
@@ -1840,7 +1847,7 @@ $Log:data.js,v $
 		 * @type Data.Table
 		 * @return the condensed table
 		 * @example
-		 *  data.condense('name',{keep:'codice'});
+		 *  data.condense({lead:'name',keep:'codice'});
 		 *
 		 *  if the source table is like:
 		 *
@@ -2800,7 +2807,7 @@ $Log:data.js,v $
 	 * @type void
 	*/
 		Data.Broker.prototype.getData = function(query){
-			query.feed = Data.feed({"source":query.url,"type":query.type}).load(function(mydata){
+			query.feed = Data.feed({"source":query.url,"type":query.type,"options":query.next.options}).load(function(mydata){
 				query.data = mydata;
 				query.result = "success";
 				query.next.realize();
