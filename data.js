@@ -1159,7 +1159,7 @@ $Log:data.js,v $
 		var topoObject = null;
 
 		// select topojson object by given name
-		if ( opt.options.name && data.objects[opt.options.name] ){
+		if ( opt.options && opt.options.name && data.objects[opt.options.name] ){
 			topoObject = topojson.feature(data, data.objects[opt.options.name]);
 		}else
 		// or take the first object
