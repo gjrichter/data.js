@@ -128,7 +128,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.41",
+		version: "1.42",
 		errors: []
 	};
 
@@ -1009,14 +1009,38 @@ $Log:data.js,v $
 			}
 			
 			for ( var a in data[0] ){
-				row.push(a);
+				if ( typeof(data[0][a]) == "object" ){
+					for ( var b in data[0][a] ){
+						if ( typeof(data[0][a][b]) == "object" ){
+							for ( var c in data[0][a][b] ){
+								row.push(a+'.'+b+'.'+c);
+							}
+						}else{
+							row.push(a+'.'+b);
+						}
+					}
+				}else{
+					row.push(a);
+				}
 			}
 			dataA.push(row);
 
 			for ( var i=0; i<data.length;i++ ){
 				var row = [];
 				for ( var a in data[0] ){
-					row.push(data[i][a]);
+					if ( typeof(data[i][a]) == "object" ){
+						for ( var b in data[i][a] ){
+							if ( typeof(data[i][a][b]) == "object" ){
+								for ( var c in data[i][a] ){
+									row.push(data[i][a][b][c]);
+								}
+							}else{
+								row.push(data[i][a][b]);
+							}
+						}
+					}else{
+						row.push(data[i][a]);
+					}
 				}
 				dataA.push(row);
 			}
