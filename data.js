@@ -78,11 +78,11 @@ $Log:data.js,v $
 	// write to console with time in sec : millisec
 	//
 	var _log_start_time = new Date();
-	_LOG = function(szLog) {
+	_LOG = function (szLog) {
 		var x = new Date();
 		//var time = String(x.getSeconds()+(x.getMilliseconds()/1000));
-		var time = ((new Date()) - _log_start_time)/1000;
-		console.log("_LOG: time[sec.ms] "+time+" "+szLog);
+		var time = ((new Date()) - _log_start_time) / 1000;
+		console.log("_LOG: time[sec.ms] " + time + " " + szLog);
 	};
 
 	// force string arrays 
@@ -103,7 +103,7 @@ $Log:data.js,v $
 	 * @type array
 	 */
 	__toArray = function (obj) {
-		if ( !obj || typeof(obj) == 'undefined' ){
+		if (!obj || typeof (obj) == 'undefined') {
 			return [];
 		} else
 		if (__isArray(obj)) {
@@ -122,13 +122,13 @@ $Log:data.js,v $
 	__onlyUnique = function (value, index, self) {
 		return self.indexOf(value) === index;
 	};
-	
+
 	/** 
 	 * @namespace 
 	 */
 
 	var Data = {
-		version: "1.42",
+		version: "1.43",
 		errors: []
 	};
 
@@ -147,7 +147,7 @@ $Log:data.js,v $
 	if (typeof module === 'object' && typeof module.exports === 'object') {
 		module.exports = Data;
 
-	// define Data as an AMD module
+		// define Data as an AMD module
 	} else if (typeof define === 'function' && define.amd) {
 		define(Data);
 	}
@@ -184,7 +184,7 @@ $Log:data.js,v $
 	Data.Object = function (options) {
 		this.options = options;
 		this.debug = false;
-		};
+	};
 
 	Data.Object.prototype = {
 
@@ -206,25 +206,25 @@ $Log:data.js,v $
 			this.feed.options = this.options;
 
 			// import data and create table, calls the callback when done
-			if ( (this.options.type == "csv") || (this.options.type == "CSV") ){
-				this.feed.__processCSVData(this.options.source,this.options);
-			}else
-			if ( (this.options.type == "rss") || (this.options.type == "RSS") ){
-				this.feed.__processRSSData(this.options.source,this.options);
-			}else
-			if ( (this.options.type == "kml") || (this.options.type == "KML") ){
-				this.feed.__processKMLData(this.options.source,this.options);
-			}else
-			if ( (this.options.type == "json") || (this.options.type == "JSON") || (this.options.type == "Json")){
-				this.feed.__processJsonData(this.options.source,this.options);
-			}else
-			if ( (this.options.type == "geojson") || (this.options.type == "GEOJSON") || (this.options.type == "GeoJson")){
-				this.feed.__processGeoJsonData(this.options.source,this.options);
-			}else
-			if ( (this.options.type == "topojson") || (this.options.type == "TOPOJSON") || (this.options.type == "TopoJson")){
-				this.feed.__processTopoJsonData(this.options.source,this.options);
+			if ((this.options.type == "csv") || (this.options.type == "CSV")) {
+				this.feed.__processCSVData(this.options.source, this.options);
+			} else
+			if ((this.options.type == "rss") || (this.options.type == "RSS")) {
+				this.feed.__processRSSData(this.options.source, this.options);
+			} else
+			if ((this.options.type == "kml") || (this.options.type == "KML")) {
+				this.feed.__processKMLData(this.options.source, this.options);
+			} else
+			if ((this.options.type == "json") || (this.options.type == "JSON") || (this.options.type == "Json")) {
+				this.feed.__processJsonData(this.options.source, this.options);
+			} else
+			if ((this.options.type == "geojson") || (this.options.type == "GEOJSON") || (this.options.type == "GeoJson")) {
+				this.feed.__processGeoJsonData(this.options.source, this.options);
+			} else
+			if ((this.options.type == "topojson") || (this.options.type == "TOPOJSON") || (this.options.type == "TopoJson")) {
+				this.feed.__processTopoJsonData(this.options.source, this.options);
 			}
-			
+
 			return this;
 		},
 		/**
@@ -265,7 +265,7 @@ $Log:data.js,v $
 	Data.Import = function (options) {
 		this.options = options;
 		this.debug = false;
-		};
+	};
 
 	/**
 	 * Create a new Data.Feed instance.  
@@ -287,7 +287,7 @@ $Log:data.js,v $
 	 * var szUrl = "https://raw.githubusercontent.com/emergenzeHack/terremotocentro/master/_data/issues.csv";
 	 * var myfeed = new Data.Feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
 	 *	
-     *    // when the feed is loaded, it calls the function you defined
+	 *    // when the feed is loaded, it calls the function you defined
 	 *    // with the loaded data as argument; it is a Table object, so you can use its methods
 	 *    // example: create new columns 'date' and 'hour' from one timestamp column
 	 *    // ---------------------------------------------------------------
@@ -300,17 +300,17 @@ $Log:data.js,v $
 	 *
 	 *  // Note: instead of new Data.Feed() you can also use the factory function Data.feed()
 	 *  var myfeed = Data.feed("Segnalazioni",{"source":szUrl,"type":"csv"}).load(function(mydata){
-   	 *  ...
-   	 *     
+	 *  ...
+	 *     
 	 */
 
 	Data.Feed = function (options) {
 		this.options = options || {};
 		this.debug = false;
-		this.options.error = function(e){
-				Data.errors.push(e);
-				};
-			};
+		this.options.error = function (e) {
+			Data.errors.push(e);
+		};
+	};
 
 	Data.Feed.prototype = {
 
@@ -334,42 +334,42 @@ $Log:data.js,v $
 
 			var __this = this;
 
-			if ( !szUrl ){
-				_alert("Data.feed(...).load(): no source defined !",2000);
+			if (!szUrl) {
+				_alert("Data.feed(...).load(): no source defined !", 2000);
 			}
 
-			if ( (option.type == "csv") || (option.type == "CSV") ){
-			  this.__doCSVImport(szUrl,option);
-			}else
-			if ( (option.type == "rss") || (option.type == "RSS") ){
-				this.__doRSSImport(szUrl,option);
-			}else
-			if ( (option.type == "kml") || (option.type == "KML") ){
-				this.__doKMLImport(szUrl,option);
-			}else
-			if ( (option.type == "json") || (option.type == "JSON") || (option.type == "Json")){
-				this.__doJSONImport(szUrl,option);
-			}else
-			if ( (option.type == "geojson") || (option.type == "GEOJSON") || (option.type == "GeoJson")){
-				this.__doGeoJSONImport(szUrl,option);
-			}else
-			if ( (option.type == "topojson") || (option.type == "TOPOJSON") || (option.type == "TopoJson")){
-				this.__doTopoJSONImport(szUrl,option);
-			}else
-			if ( (option.type == "jsonDB") || (option.type == "JSONDB") || (option.type == "JsonDB") || (option.type == "jsondb") ){
-				this.__doJsonDBImport(szUrl,option);
-			}else
-			if ( (option.type == "jsonstat") || (option.type == "jsonStat") || (option.type == "JSONSTAT") ){
+			if ((option.type == "csv") || (option.type == "CSV")) {
+				this.__doCSVImport(szUrl, option);
+			} else
+			if ((option.type == "rss") || (option.type == "RSS")) {
+				this.__doRSSImport(szUrl, option);
+			} else
+			if ((option.type == "kml") || (option.type == "KML")) {
+				this.__doKMLImport(szUrl, option);
+			} else
+			if ((option.type == "json") || (option.type == "JSON") || (option.type == "Json")) {
+				this.__doJSONImport(szUrl, option);
+			} else
+			if ((option.type == "geojson") || (option.type == "GEOJSON") || (option.type == "GeoJson")) {
+				this.__doGeoJSONImport(szUrl, option);
+			} else
+			if ((option.type == "topojson") || (option.type == "TOPOJSON") || (option.type == "TopoJson")) {
+				this.__doTopoJSONImport(szUrl, option);
+			} else
+			if ((option.type == "jsonDB") || (option.type == "JSONDB") || (option.type == "JsonDB") || (option.type == "jsondb")) {
+				this.__doJsonDBImport(szUrl, option);
+			} else
+			if ((option.type == "jsonstat") || (option.type == "jsonStat") || (option.type == "JSONSTAT")) {
 				$.getScript("http://json-stat.org/lib/json-stat.js")
-				.done(function(script, textStatus) {
-				  __this.__doLoadJSONstat(szUrl,option);
-				  return;
-				})
-				.fail(function(jqxhr, settings, exception) {
-				  _alert("'"+option.type+"' unknown format !");
-				});
-			}else{
-				_alert("'"+option.type+"' unknown format !");
+					.done(function (script, textStatus) {
+						__this.__doLoadJSONstat(szUrl, option);
+						return;
+					})
+					.fail(function (jqxhr, settings, exception) {
+						_alert("'" + option.type + "' unknown format !");
+					});
+			} else {
+				_alert("'" + option.type + "' unknown format !");
 			}
 			return this;
 		},
@@ -441,12 +441,12 @@ $Log:data.js,v $
 	 * @param opt options
 	 * @type void
 	 */
-	Data.Feed.prototype.__doLoadJSONstat = function(szUrl,opt) {
+	Data.Feed.prototype.__doLoadJSONstat = function (szUrl, opt) {
 
 		var __this = this;
 
-		JSONstat( szUrl, 
-			function(){
+		JSONstat(szUrl,
+			function () {
 
 				var dataA = new Array();
 
@@ -458,32 +458,32 @@ $Log:data.js,v $
 				//
 				var row = [this.Dataset(0).Dimension(0).label];
 				var index = this.Dataset(0).Dimension(1).id;
-				for ( i=0; i<index.length; i++ ){
+				for (i = 0; i < index.length; i++) {
 					row.push(this.Dataset(0).Dimension(1).Category(index[i]).label);
 				}
 				dataA.push(row);
 
 				// data rows
 				//
-				for (var i=0; i<this.Dataset(0).Dimension(0).length; i++ ){
+				for (var i = 0; i < this.Dataset(0).Dimension(0).length; i++) {
 					var row = new Array();
 					row.push(this.Dataset(0).Dimension(0).Category(this.Dataset(0).Dimension(0).id[i]).label);
-					for (var ii=0; ii<this.Dataset(0).Dimension(1).length; ii++ ){
-						row.push(this.Dataset(0).Data([i,ii]).value);
+					for (var ii = 0; ii < this.Dataset(0).Dimension(1).length; ii++) {
+						row.push(this.Dataset(0).Data([i, ii]).value);
 					}
-						dataA.push(row);
+					dataA.push(row);
 				}
 
-			// user defined callback
-			if ( opt.callback ){
-				opt.callback(dataA,opt);
-				return;
-			}
+				// user defined callback
+				if (opt.callback) {
+					opt.callback(dataA, opt);
+					return;
+				}
 
-			// finish the data table object 
-			__this.__createDataTableObject(dataA,opt.type,opt);
+				// finish the data table object 
+				__this.__createDataTableObject(dataA, opt.type, opt);
 
-		});
+			});
 	}
 
 	// ---------------------------------
@@ -498,31 +498,31 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__doJsonDBImport = function(szUrl,opt) {
+	Data.Feed.prototype.__doJsonDBImport = function (szUrl, opt) {
 
-		_LOG("__doJsonDBImport: "+szUrl);
+		_LOG("__doJsonDBImport: " + szUrl);
 		var __this = this;
 
 		opt.url = szUrl;
 
-		$.getScript(szUrl+".gz")
-			.done(function(script, textStatus) {
-			  __this.__processJsonDBData(script,opt);
+		$.getScript(szUrl + ".gz")
+			.done(function (script, textStatus) {
+				__this.__processJsonDBData(script, opt);
 			})
-			.fail(function(jqxhr, settings, exception) {
+			.fail(function (jqxhr, settings, exception) {
 				$.getScript(szUrl)
-				.done(function(script, textStatus) {
-				  __this.__processJsonDBData(script,opt);
-				})
-				.fail(function(jqxhr, settings, exception) {
-					if ( __this.options.error ){
-						__this.options.error("\""+szUrl+"\" "+exception);
-					}
-				});
+					.done(function (script, textStatus) {
+						__this.__processJsonDBData(script, opt);
+					})
+					.fail(function (jqxhr, settings, exception) {
+						if (__this.options.error) {
+							__this.options.error("\"" + szUrl + "\" " + exception);
+						}
+					});
 			});
 	};
 
-	Data.Feed.prototype.__processJsonDBData = function(script,opt) {
+	Data.Feed.prototype.__processJsonDBData = function (script, opt) {
 
 		_LOG("__processJsonDBData:");
 
@@ -534,19 +534,19 @@ $Log:data.js,v $
 		name = name.split(/\./)[0];
 		var loadedTable = eval(name);
 
-		this.dbtable.table   = loadedTable.table;
-		this.dbtable.fields  = loadedTable.fields;
+		this.dbtable.table = loadedTable.table;
+		this.dbtable.fields = loadedTable.fields;
 		this.dbtable.records = loadedTable.records;
 
 		// user defined callback ??
-		if ( opt.callback ){
-			opt.callback(newData,opt);
+		if (opt.callback) {
+			opt.callback(newData, opt);
 			return;
 		}
 
 		// deploy the object into the map
 		// ------------------------------
-		if ( (typeof(opt) != "undefined") && opt.success ){
+		if ((typeof (opt) != "undefined") && opt.success) {
 			opt.success(this.dbtable);
 		}
 	};
@@ -564,25 +564,24 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__doCSVImport = function(szUrl,opt) {
+	Data.Feed.prototype.__doCSVImport = function (szUrl, opt) {
 
-		_LOG("__doCSVImport: "+szUrl);
+		_LOG("__doCSVImport: " + szUrl);
 		var __this = this;
 
 		$.ajax({
 			type: "GET",
 			url: szUrl,
 			dataType: "text",
-			success: function(data) {
-			  __this.__processCSVData
-				  (data,opt);
+			success: function (data) {
+				__this.__processCSVData(data, opt);
 			},
-			error: function(jqxhr, settings, exception) {
-				if ( (typeof(opt) != "undefined") && opt.error ){
-					opt.error("\""+szUrl+"\" "+exception);
+			error: function (jqxhr, settings, exception) {
+				if ((typeof (opt) != "undefined") && opt.error) {
+					opt.error("\"" + szUrl + "\" " + exception);
 				}
 			}
-		 });
+		});
 	};
 
 	/**
@@ -592,7 +591,7 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__processCSVData = function(csv,opt) {
+	Data.Feed.prototype.__processCSVData = function (csv, opt) {
 
 		_LOG("__processCSVData:");
 
@@ -604,28 +603,28 @@ $Log:data.js,v $
 		// GR 02.11.2015 nuovo csv parser Papa Parse by Matt Hold 
 		// GR 21.07.2016 if autodecet delimiter fails, try first ; and then ,   
 
-		if ( typeof(Papa) == "undefined" ){
+		if (typeof (Papa) == "undefined") {
 			__this = this;
 			$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
-			.done(function(script, textStatus) {
-			  __this.__processCSVData(csv,opt);
-			  return;
-			})
-			.fail(function(jqxhr, settings, exception) {
-			  _alert("'"+opt.type+"' parser not loaded !");
-			  return;
-			});
+				.done(function (script, textStatus) {
+					__this.__processCSVData(csv, opt);
+					return;
+				})
+				.fail(function (jqxhr, settings, exception) {
+					_alert("'" + opt.type + "' parser not loaded !");
+					return;
+				});
 			return;
 		}
-		
-		var newData = Papa.parse(csv,opt.parser).data;
-		
+
+		var newData = Papa.parse(csv, opt.parser).data;
+
 		_LOG("csv parser: done");
 
-		if ( typeof(newData[0]) == "undefined" || 
-			 typeof(newData[1]) == "undefined"){
+		if (typeof (newData[0]) == "undefined" ||
+			typeof (newData[1]) == "undefined") {
 			_alert(newData);
-			if ( opt.error ){
+			if (opt.error) {
 				opt.error(newData);
 			}
 			//delete csv;
@@ -633,16 +632,20 @@ $Log:data.js,v $
 			return false;
 		}
 
-		if ( !(opt.parser && opt.parser.delimiter) ){
-			if ( (newData[0].length != newData[1].length) ){
+		if (!(opt.parser && opt.parser.delimiter)) {
+			if ((newData[0].length != newData[1].length)) {
 				_LOG("csv parser: autodetect failed");
 				_LOG("csv parser: delimiter = ;");
-				newData = Papa.parse(csv,{delimiter:";"}).data;
-				if ( newData[0].length != newData[1].length ){
+				newData = Papa.parse(csv, {
+					delimiter: ";"
+				}).data;
+				if (newData[0].length != newData[1].length) {
 					_LOG("csv parser: delimiter = ; failed");
 					_LOG("csv parser: delimiter = ,");
-					newData = Papa.parse(csv,{delimiter:","}).data;
-					if ( newData[0].length != newData[1].length ){
+					newData = Papa.parse(csv, {
+						delimiter: ","
+					}).data;
+					if (newData[0].length != newData[1].length) {
 						_LOG("csv parser: delimiter = , failed");
 						_alert("csv parsing error");
 					}
@@ -652,7 +655,7 @@ $Log:data.js,v $
 
 		// if csv ends with /n, last element is " ", so we must pop it 
 		//
-		if ( newData[newData.length-1].length != newData[0].length ){
+		if (newData[newData.length - 1].length != newData[0].length) {
 			newData.pop();
 		}
 
@@ -660,20 +663,20 @@ $Log:data.js,v $
 		// the parser gives the first row with different length; 
 		// we must correct this here, because iXMaps checks every row's length with the first ones length later 
 		// 
-		if ( (newData[0].length - newData[1].length) == 1 ) {
-			if ( newData[0][newData[0].length-1] == " " ){
+		if ((newData[0].length - newData[1].length) == 1) {
+			if (newData[0][newData[0].length - 1] == " ") {
 				newData[0].pop();
 			}
 		}
 		// user defined callback and give raw data array
-		if ( opt.callback ){
-			opt.callback(newData,opt);
+		if (opt.callback) {
+			opt.callback(newData, opt);
 			return;
 		}
 
 		_LOG("__createDataTableObject:");
 		// finish the data table object 
-		this.__createDataTableObject(newData,opt.type,opt);
+		this.__createDataTableObject(newData, opt.type, opt);
 
 		csv = null;
 		newData = null;
@@ -693,9 +696,9 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__doRSSImport = function(szUrl,opt) {
+	Data.Feed.prototype.__doRSSImport = function (szUrl, opt) {
 
-		_LOG("__doRSSImport: "+szUrl);
+		_LOG("__doRSSImport: " + szUrl);
 		var __this = this;
 
 		opt.format = "xml";
@@ -704,12 +707,11 @@ $Log:data.js,v $
 			type: "GET",
 			url: szUrl,
 			dataType: "xml",
-			success: function(data) {
-			__this.__processRSSData
-				(data,opt);
+			success: function (data) {
+				__this.__processRSSData(data, opt);
 			},
-			error: function(jqxhr, settings, exception) {
-				if ( (typeof(opt) != "undefined") && opt.error ){
+			error: function (jqxhr, settings, exception) {
+				if ((typeof (opt) != "undefined") && opt.error) {
 					opt.error(jqxhr, settings, exception);
 				}
 			}
@@ -724,21 +726,21 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__processRSSData = function(data,opt) {
+	Data.Feed.prototype.__processRSSData = function (data, opt) {
 
-		if ( opt.format == "xml" ) {
+		if (opt.format == "xml") {
 
 			var layerset = null;
 			var layer = null;
 			var fonte = null;
 
-			if ( $(data).find('rss').length ){
-				this.__parseRSSData(data,opt);
-			}else
-			if ( $(data).find('feed').length ){
+			if ($(data).find('rss').length) {
+				this.__parseRSSData(data, opt);
+			} else
+			if ($(data).find('feed').length) {
 				_alert("feed not yet supported");
-			}else
-			if ( $(data).find('atom').length ){
+			} else
+			if ($(data).find('atom').length) {
 				_alert("atom not yet supported");
 			}
 		}
@@ -751,11 +753,11 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__parseRSSData = function(data,opt){
+	Data.Feed.prototype.__parseRSSData = function (data, opt) {
 
 		var __this = this;
 
-		if ( opt.format == "xml" ) {
+		if (opt.format == "xml") {
 
 			var layerset = null;
 			var layer = null;
@@ -766,23 +768,23 @@ $Log:data.js,v $
 
 			var version = $(data).find('rss').attr("version");
 
-			$(data).find('channel').each(function(){
+			$(data).find('channel').each(function () {
 
 				var dataA = [];
 				var count = 0;
 				var childNamesA = null;
 
-				$(data).find('item').each(function(){
+				$(data).find('item').each(function () {
 
 					// get item fieldnames from the first item of the channel
 					// ------------------------------------------------------
-					if ( !childNamesA ){ 
+					if (!childNamesA) {
 						var check = [];
 						childNamesA = [];
 						var childs = $(this).children();
-						for (var i=0; i<childs.length; i++)	{
+						for (var i = 0; i < childs.length; i++) {
 							var szNode = $(this).children()[i].nodeName;
-							while ( check[szNode] ){
+							while (check[szNode]) {
 								szNode += "*";
 							}
 							check[szNode] = szNode;
@@ -794,17 +796,17 @@ $Log:data.js,v $
 
 					// make one item values
 					var row = [];
-					for (var i=0; i<childNamesA.length; i++){
-						if ( childNamesA[i] == "enclosure" ){
-							row.push(($(this).find(childNamesA[i]+':first').attr("url"))||"");
-						}else{
-							row.push(($(this).find(childNamesA[i]+':first').text())||"");
+					for (var i = 0; i < childNamesA.length; i++) {
+						if (childNamesA[i] == "enclosure") {
+							row.push(($(this).find(childNamesA[i] + ':first').attr("url")) || "");
+						} else {
+							row.push(($(this).find(childNamesA[i] + ':first').text()) || "");
 						}
 					}
 					dataA.push(row);
 				});
 
-				__this.__createDataTableObject(dataA,"rss",opt);
+				__this.__createDataTableObject(dataA, "rss", opt);
 
 			});
 		}
@@ -822,9 +824,9 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__doKMLImport = function(szUrl,opt) {
-		
-		_LOG("__doKMLImport: "+szUrl);
+	Data.Feed.prototype.__doKMLImport = function (szUrl, opt) {
+
+		_LOG("__doKMLImport: " + szUrl);
 		var __this = this;
 
 		opt.format = "xml";
@@ -833,12 +835,11 @@ $Log:data.js,v $
 			type: "GET",
 			url: szUrl,
 			dataType: "xml",
-			success: function(data) {
-			__this.__processKMLData
-				(data,opt);
+			success: function (data) {
+				__this.__processKMLData(data, opt);
 			},
-			error: function(jqxhr, settings, exception) {
-				if ( (typeof(opt) != "undefined") && opt.error ){
+			error: function (jqxhr, settings, exception) {
+				if ((typeof (opt) != "undefined") && opt.error) {
 					opt.error(jqxhr, settings, exception);
 				}
 			}
@@ -853,17 +854,17 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__processKMLData = function(data,opt) {
+	Data.Feed.prototype.__processKMLData = function (data, opt) {
 
-		if ( opt.format == "xml" ) {
+		if (opt.format == "xml") {
 
 			var layerset = null;
 			var layer = null;
 			var fonte = null;
 
-			if ( $(data).find('kml').length ){
-				this.__parseKMLData(data,opt);
-			}else{
+			if ($(data).find('kml').length) {
+				this.__parseKMLData(data, opt);
+			} else {
 				_alert("feed not kml");
 			}
 		}
@@ -876,11 +877,11 @@ $Log:data.js,v $
 	 * @param opt optional options
 	 * @type void
 	 */
-	Data.Feed.prototype.__parseKMLData = function(data,opt){
+	Data.Feed.prototype.__parseKMLData = function (data, opt) {
 
 		var __this = this;
 
-		if ( opt.format == "xml" ) {
+		if (opt.format == "xml") {
 
 			var layerset = null;
 			var layer = null;
@@ -894,19 +895,19 @@ $Log:data.js,v $
 
 			var dataA = [];
 			var childNamesA = null;
-			
-			document.find('Placemark').each(function(){
-				
+
+			document.find('Placemark').each(function () {
+
 				var xdata = $(this).find('ExtendedData') || $(this);
-				
+
 				// get item fieldnames from the first item of the channel
 				// ------------------------------------------------------
-				if ( !childNamesA ){ 
+				if (!childNamesA) {
 					childNamesA = [];
-					xdata.find('Data').each(function(){
+					xdata.find('Data').each(function () {
 						childNamesA.push($(this).attr("name"));
 					});
-					if ( $(this).find('Point').find('coordinates') ){
+					if ($(this).find('Point').find('coordinates')) {
 						childNamesA.push('KML.Point');
 					}
 					dataA.push(childNamesA);
@@ -914,20 +915,20 @@ $Log:data.js,v $
 
 				// make one item values
 				var row = [];
-				xdata.find('Data').each(function(){
+				xdata.find('Data').each(function () {
 					row.push($(this).find("value").text());
 				});
-				if ( $(this).find('Point').find('coordinates') ){
+				if ($(this).find('Point').find('coordinates')) {
 					row.push($(this).find('Point').find('coordinates').text());
 				}
 				dataA.push(row);
 
 			});
-			
+
 			console.log(dataA);
-			
-			__this.__createDataTableObject(dataA,"kml",opt);
-			
+
+			__this.__createDataTableObject(dataA, "kml", opt);
+
 		}
 	};
 
@@ -943,17 +944,17 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__doJSONImport = function(szUrl,opt) {
+	Data.Feed.prototype.__doJSONImport = function (szUrl, opt) {
 
 		var __this = this;
 		$.get(szUrl,
-			function(data){
-				__this.__processJsonData(data,opt);
-			}).fail(function(e) { 
-				if ( (typeof(opt) != "undefined") && opt.error ){
-					opt.error(e);
-				}
-			});
+			function (data) {
+				__this.__processJsonData(data, opt);
+			}).fail(function (e) {
+			if ((typeof (opt) != "undefined") && opt.error) {
+				opt.error(e);
+			}
+		});
 
 	}
 	/** 
@@ -964,15 +965,15 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__processJsonData = function(script,opt) {
+	Data.Feed.prototype.__processJsonData = function (script, opt) {
 
-		if ( typeof(script) == "string" ){
+		if (typeof (script) == "string") {
 			try {
 				var data = JSON.parse(script);
 			} catch (e) {
-				this.__createDataTableObject([],"json",opt);
+				this.__createDataTableObject([], "json", opt);
 			}
-		}else{
+		} else {
 			var data = script;
 		}
 		this.data = data;
@@ -982,63 +983,63 @@ $Log:data.js,v $
 
 		// json with structure data.columns[] data.rows[][]
 		// -------------------------------------------------
-		if ( data && data.data && data.data.columns && data.data.rows ){
+		if (data && data.data && data.data.columns && data.data.rows) {
 
 			var columns = data.data.columns;
 			var rows = data.data.rows;
 
-			for ( var i in columns ){
+			for (var i in columns) {
 				row.push(columns[i]);
 			}
 			dataA.push(row);
 
-			for ( var i=0; i<rows.length;i++ ){
+			for (var i = 0; i < rows.length; i++) {
 				var row = [];
-				for ( var ii in rows[0] ){
+				for (var ii in rows[0]) {
 					row.push(rows[i][ii]);
 				}
 				dataA.push(row);
 			}
 
-		// json without database structure
-		// -------------------------------------------------
-		}else{
+			// json without database structure
+			// -------------------------------------------------
+		} else {
 			// if initial data object, take the data within
-			if ( data && data.data ){
+			if (data && data.data) {
 				data = data.data;
 			}
-			
-			for ( var a in data[0] ){
-				if ( typeof(data[0][a]) == "object" ){
-					for ( var b in data[0][a] ){
-						if ( typeof(data[0][a][b]) == "object" ){
-							for ( var c in data[0][a][b] ){
-								row.push(a+'.'+b+'.'+c);
+
+			for (var a in data[0]) {
+				if (typeof (data[0][a]) == "object") {
+					for (var b in data[0][a]) {
+						if (typeof (data[0][a][b]) == "object") {
+							for (var c in data[0][a][b]) {
+								row.push(a + '.' + b + '.' + c);
 							}
-						}else{
-							row.push(a+'.'+b);
+						} else {
+							row.push(a + '.' + b);
 						}
 					}
-				}else{
+				} else {
 					row.push(a);
 				}
 			}
 			dataA.push(row);
 
-			for ( var i=0; i<data.length;i++ ){
+			for (var i = 0; i < data.length; i++) {
 				var row = [];
-				for ( var a in data[0] ){
-					if ( typeof(data[i][a]) == "object" ){
-						for ( var b in data[i][a] ){
-							if ( typeof(data[i][a][b]) == "object" ){
-								for ( var c in data[i][a] ){
+				for (var a in data[0]) {
+					if (typeof (data[i][a]) == "object") {
+						for (var b in data[i][a]) {
+							if (typeof (data[i][a][b]) == "object") {
+								for (var c in data[i][a]) {
 									row.push(data[i][a][b][c]);
 								}
-							}else{
+							} else {
 								row.push(data[i][a][b]);
 							}
 						}
-					}else{
+					} else {
 						row.push(data[i][a]);
 					}
 				}
@@ -1047,7 +1048,7 @@ $Log:data.js,v $
 		}
 
 		// finish the data table object 
-		this.__createDataTableObject(dataA,"json",opt);
+		this.__createDataTableObject(dataA, "json", opt);
 	}
 
 
@@ -1063,17 +1064,17 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__doGeoJSONImport = function(szUrl,opt) {
+	Data.Feed.prototype.__doGeoJSONImport = function (szUrl, opt) {
 
 		var __this = this;
 		$.get(szUrl,
-			function(data){
-				__this.__processGeoJsonData(data,opt);
-			}).fail(function(e) { 
-				if ( (typeof(opt) != "undefined") && opt.error ){
-					opt.error(e);
-				}
-			});
+			function (data) {
+				__this.__processGeoJsonData(data, opt);
+			}).fail(function (e) {
+			if ((typeof (opt) != "undefined") && opt.error) {
+				opt.error(e);
+			}
+		});
 
 	}
 	/** 
@@ -1084,15 +1085,15 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__processGeoJsonData = function(script,opt) {
+	Data.Feed.prototype.__processGeoJsonData = function (script, opt) {
 
-		if ( typeof(script) == "string" ){
+		if (typeof (script) == "string") {
 			try {
 				var data = JSON.parse(script);
 			} catch (e) {
-				this.__createDataTableObject([],"json",opt);
+				this.__createDataTableObject([], "json", opt);
 			}
-		}else{
+		} else {
 			var data = script;
 		}
 		this.data = data;
@@ -1100,30 +1101,35 @@ $Log:data.js,v $
 		var dataA = [];
 		var row = [];
 		var columns = [];
-		
-		if ( data && data.features && data.features.length ){
-			for ( i = 0; i< data.features.length; i++ ){
-				for ( p in data.features[i].properties ){
+
+		if (data && data.features && data.features.length) {
+
+			for (i = 0; i < data.features.length; i++) {
+				for (p in data.features[i].properties) {
 					columns[p] = true;
 				}
 			}
-			for ( p in columns ){
+			for (p in columns) {
 				row.push(p);
 			}
 			row.push("geometry");
 			dataA.push(row);
 
-			for ( var i=0; i<data.features.length; i++ ){
+			for (var i = 0; i < data.features.length; i++) {
 				row = [];
-				for ( p=0; p<dataA[0].length-1; p++ ){
-					row.push(data.features[i].properties[dataA[0][p]]||"");
+				for (p = 0; p < dataA[0].length - 1; p++) {
+					if (typeof data.features[i].properties[dataA[0][p]] === "object") {
+						row.push(JSON.stringify(data.features[i].properties[dataA[0][p]] || ""));
+					} else {
+						row.push(data.features[i].properties[dataA[0][p]] || "");
+					}
 				}
 				row.push(JSON.stringify(data.features[i].geometry));
 				dataA.push(row);
 			}
 		}
 		// finish the data table object 
-		this.__createDataTableObject(dataA,"json",opt);
+		this.__createDataTableObject(dataA, "json", opt);
 	}
 
 	// ---------------------------------
@@ -1138,17 +1144,17 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__doTopoJSONImport = function(szUrl,opt) {
+	Data.Feed.prototype.__doTopoJSONImport = function (szUrl, opt) {
 
 		var __this = this;
 		$.get(szUrl,
-			function(data){
-				__this.__processTopoJsonData(data,opt);
-			}).fail(function(e) { 
-				if ( (typeof(opt) != "undefined") && opt.error ){
-					opt.error(e);
-				}
-			});
+			function (data) {
+				__this.__processTopoJsonData(data, opt);
+			}).fail(function (e) {
+			if ((typeof (opt) != "undefined") && opt.error) {
+				opt.error(e);
+			}
+		});
 
 	}
 	/** 
@@ -1158,48 +1164,48 @@ $Log:data.js,v $
 	 * @param i filenumber
 	 * @type void
 	 */
-	Data.Feed.prototype.__processTopoJsonData = function(script,opt) {
+	Data.Feed.prototype.__processTopoJsonData = function (script, opt) {
 
-		if ( typeof(topojson) == "undefined" ){
-			_alert("'"+opt.type+"' parser not loaded !");
+		if (typeof (topojson) == "undefined") {
+			_alert("'" + opt.type + "' parser not loaded !");
 			return;
 		}
 
-		if ( typeof(script) == "string" ){
+		if (typeof (script) == "string") {
 			try {
 				var data = JSON.parse(script);
 			} catch (e) {
-				this.__createDataTableObject([],"json",opt);
+				this.__createDataTableObject([], "json", opt);
 			}
-		}else{
+		} else {
 			var data = script;
 		}
 		this.data = data;
-		
+
 		console.log("------ !!! ------");
 		console.log(data);
 		console.log("------ !!! ------");
-		
+
 		var topoObject = null;
 
 		// select topojson object by given name
-		if ( opt.options && opt.options.name && data.objects[opt.options.name] ){
+		if (opt.options && opt.options.name && data.objects[opt.options.name]) {
 			topoObject = topojson.feature(data, data.objects[opt.options.name]);
-		}else
-		// or take the first object
-		for ( i in data.objects ){
-			topoObject = topojson.feature(data, data.objects[i]);
-			break;
+		} else
+			// or take the first object
+			for (i in data.objects) {
+				topoObject = topojson.feature(data, data.objects[i]);
+				break;
+			}
+
+		for (var i in topoObject.features) {
+			topoObject.features[i].properties.id = topoObject.features[i].id;
 		}
 
-		for ( var i in topoObject.features){
-			topoObject.features[i].properties.id = topoObject.features[i].id;  
-		}
-		
-		this.__processGeoJsonData(topoObject,opt);	
+		this.__processGeoJsonData(topoObject, opt);
 	}
 
-	
+
 
 	// ---------------------------------
 	// C R E A T E   D A T A   T A B L E 
@@ -1210,14 +1216,14 @@ $Log:data.js,v $
 	 * finally make the data object with the iXmaps data structure
 	 * @type void
 	 */
-	Data.Feed.prototype.__createDataTableObject = function(dataA,szType,opt){
+	Data.Feed.prototype.__createDataTableObject = function (dataA, szType, opt) {
 
-		if (dataA){
+		if (dataA) {
 
 			this.dbtable = new Data.Table().setArray(dataA);
 			dataA = null;
 
-			if ( (typeof(opt) != "undefined") && opt.success ){
+			if ((typeof (opt) != "undefined") && opt.success) {
 				opt.success(this.dbtable);
 			}
 
@@ -1233,8 +1239,8 @@ $Log:data.js,v $
 	 * @example
 	 * // the data of the Table object ist stored like this example:
 	 * {
-     *     table : {    
-     *               fields:3,
+	 *     table : {    
+	 *               fields:3,
 	 *              records:2
 	 *             },
 	 *    fields : [
@@ -1253,13 +1259,15 @@ $Log:data.js,v $
 	 */
 
 	Data.Table = function (table) {
-		if (table){
+		if (table) {
 			this.table = table.table;
 			this.fields = table.fields;
 			this.records = table.records;
- 		}else{
-			this.table = {records:0,
-						  fields:0};
+		} else {
+			this.table = {
+				records: 0,
+				fields: 0
+			};
 			this.fields = [];
 			this.records = [];
 		}
@@ -1273,12 +1281,12 @@ $Log:data.js,v $
 		 * @type Array
 		 * @return table as array of arrays
 		 */
-		getArray: function(){
+		getArray: function () {
 			var dataA = [[]];
-			for (var i in this.fields ){
+			for (var i in this.fields) {
 				dataA[0].push(this.fields[i].id);
 			}
-			for ( var i=0; i<this.records.length; i++ )	{
+			for (var i = 0; i < this.records.length; i++) {
 				dataA.push(this.records[i]);
 			}
 			return dataA;
@@ -1291,25 +1299,33 @@ $Log:data.js,v $
 		 * @type Data.Table
 		 * @return itself
 		 */
-		setArray: function(dataA){
+		setArray: function (dataA) {
 			// first row of data => object.fields
 			// ------------
 			this.fields = [];
-			for ( var a in dataA[0] ){
-				this.fields.push({id:(dataA[0][a]||" ").trim(),typ:0,width:60,decimals:0});
+			for (var a in dataA[0]) {
+				this.fields.push({
+					id: (dataA[0][a] || " ").trim(),
+					typ: 0,
+					width: 60,
+					decimals: 0
+				});
 			}
 			// following rows => object.records
 			// --------------
 			dataA.shift();
-		
+
 			// set records checking length
 			this.records = [];
-			for ( var r in dataA ){
-				if ( dataA[r].length == this.fields.length ) {
+			for (var r in dataA) {
+				if (dataA[r].length == this.fields.length) {
 					this.records.push(dataA[r]);
 				}
 			}
-			this.table = {records:this.records.length , fields:this.fields.length };
+			this.table = {
+				records: this.records.length,
+				fields: this.fields.length
+			};
 			return this;
 		},
 
@@ -1318,9 +1334,9 @@ $Log:data.js,v $
 		 * @type Data.Table
 		 * @return the reverted table
 		 */
-		revert: function(){
+		revert: function () {
 			var records = [];
-			for ( var i=this.records.length-1; i>=0; i-- )	{
+			for (var i = this.records.length - 1; i >= 0; i--) {
 				records.push(this.records[i]);
 			}
 			this.records = records;
@@ -1332,9 +1348,9 @@ $Log:data.js,v $
 		 * @type Data.Table
 		 * @return the reversed table
 		 */
-		reverse: function(){
+		reverse: function () {
 			var records = [];
-			for ( var i=this.records.length-1; i>=0; i-- )	{
+			for (var i = this.records.length - 1; i >= 0; i--) {
 				records.push(this.records[i]);
 			}
 			this.records = records;
@@ -1346,9 +1362,9 @@ $Log:data.js,v $
 		 * @type array
 		 * @return an array with the column names
 		 */
-		columnNames: function(){
+		columnNames: function () {
 			var fieldsA = [];
-			for (var i in this.fields )	{
+			for (var i in this.fields) {
 				fieldsA.push(this.fields[i].id);
 			}
 			return fieldsA;
@@ -1361,9 +1377,9 @@ $Log:data.js,v $
 		 * @type int
 		 * @return {int} the index of the column or null
 		 */
-		columnIndex: function(szColumn){
-			for (var i in this.fields )	{
-				if ( this.fields[i].id == szColumn ){
+		columnIndex: function (szColumn) {
+			for (var i in this.fields) {
+				if (this.fields[i].id == szColumn) {
 					return i;
 				}
 			}
@@ -1382,9 +1398,9 @@ $Log:data.js,v $
 		 *    ...
 		 * });
 		 */
-		column: function(szColumn){ 
-			for (var i in this.fields )	{
-				if ( this.fields[i].id == szColumn ){
+		column: function (szColumn) {
+			for (var i in this.fields) {
+				if (this.fields[i].id == szColumn) {
 					var column = new Data.Column();
 					column.index = i;
 					column.table = this;
@@ -1423,26 +1439,26 @@ $Log:data.js,v $
 		 * ...
 		 *
 		 */
-		lookupArray: function(szValue,szLookup){
-			
+		lookupArray: function (szValue, szLookup) {
+
 			// GR 06.09.2021 new argument object {}
-			if (szValue && szValue.key){
+			if (szValue && szValue.key) {
 				szLookup = szValue.key;
-				szValue  = szValue.value; 
+				szValue = szValue.value;
 			}
 
 			var lookupA = [];
-			if (!this.column(szLookup)){
-				alert("'"+szLookup+"' column not found!");
+			if (!this.column(szLookup)) {
+				alert("'" + szLookup + "' column not found!");
 			}
-			if (!this.column(szValue)){
-				alert("'"+szValue+"' column not found!");
+			if (!this.column(szValue)) {
+				alert("'" + szValue + "' column not found!");
 			}
 
-			var idA = this.column(szLookup).values();		
+			var idA = this.column(szLookup).values();
 			var valueA = this.column(szValue).values();
-			for ( i in idA ){
-				lookupA[String(idA[i])] = valueA[i]||"-";
+			for (i in idA) {
+				lookupA[String(idA[i])] = valueA[i] || "-";
 			}
 			return lookupA;
 		},
@@ -1454,15 +1470,15 @@ $Log:data.js,v $
 		 * @type String
 		 * @return the found value 
 		 */
-		lookup: function(value,option){
+		lookup: function (value, option) {
 			var colValue = option.value;
 			var colLookup = option.lookup;
-			var sCacheId = colValue+"_"+colLookup;
-			if ( !(this.lookupsA && this.lookupsA[sCacheId]) )	{
+			var sCacheId = colValue + "_" + colLookup;
+			if (!(this.lookupsA && this.lookupsA[sCacheId])) {
 				this.lookupsA = this.lookupsA || [];
-				this.lookupsA[sCacheId] = this.lookupArray(colValue,colLookup);
+				this.lookupsA[sCacheId] = this.lookupArray(colValue, colLookup);
 			}
-			return (this.lookupsA[sCacheId][value]||"-");
+			return (this.lookupsA[sCacheId][value] || "-");
 		},
 
 		/**
@@ -1493,35 +1509,78 @@ $Log:data.js,v $
 		 *     });
 		 *
 		 */
-		addColumn: function(options,callback){
-			
-			if ( !options.destination ){
+		addColumn: function (options, callback) {
+
+			if (!options.destination) {
 				alert("'data.addColumn' no destination defined!");
 				return null;
 			}
 			var column = null;
-			if (options.source)	{
-				for (var i in this.fields ){
-					if ( this.fields[i].id == options.source ){
+			if (options.source) {
+				for (var i in this.fields) {
+					if (this.fields[i].id == options.source) {
 						column = i;
 					}
 				}
-				if ( column == null ){
-					alert("'data.addColumn' source column '"+options.source+"' not found!");
+				if (column == null) {
+					alert("'data.addColumn' source column '" + options.source + "' not found!");
 					return null;
 				}
 			}
 
 			// add new column name
-			this.fields.push({id:String(options.destination),created:true});
+			this.fields.push({
+				id: String(options.destination),
+				created: true
+			});
 			this.table.fields++;
 
 			// add new column values
 			// ---------------------
-			for ( var j in this.records ){
-				this.records[j].push((column!=null)?callback(this.records[j][column]):callback(this.records[j]));
+			for (var j in this.records) {
+				this.records[j].push((column != null) ? callback(this.records[j][column]) : callback(this.records[j]));
 			}
-			
+
+			return this;
+		},
+
+		/**
+		 * adds a row to the data<br>
+		 * the values of columns are defined by a JSON Object, which defines values for selected columns; non defined columns are set to ' '
+		 * @param {object} options the creation parameter
+		 *								   <table border='0' style='border-left: 1px solid #ddd;'>	
+		 *								   <tr><th>property</th><th>description</th></tr>
+		 *								   <tr><td><b>"column name"</b></td><td>value</td></tr>
+		 *								   <tr><td><b>"column name"</b></td><td>value</td></tr>
+		 *								   </table> 
+		 * @type {Data.Table}
+		 * @return {Data.Table} the enhanced table
+		 * @example
+		 *    mydata = mydata.addRow({'column 1':'Rossi','column 2':'Aldo'} );
+		 */
+		addRow: function (options) {
+
+			if (!options || (typeof options !== "object")) {
+				alert("'data.addRow' no options defined!");
+				return null;
+			}
+			// create new empty row
+			var row = [];
+			for (var i in this.fields) {
+				row.push(" ");
+			}
+			// set user values
+			for (var i in options) {
+				if (this.column(i)) {
+					row[this.column(i).index] = options[i];
+				} else {
+					alert("'data.addRow' column '" + i + "' not found!");
+				}
+			}
+			// add the new row to the data table
+			this.records.push(row);
+			this.table.records++;
+
 			return this;
 		},
 
@@ -1581,32 +1640,32 @@ $Log:data.js,v $
 		 * var ageTotal = rawdata.select('WHERE "Age" = "Total" AND "SEX" = "MW" AND "Series" = "Labour force participation rate"');
 		 * var ageWork  = rawdata.select('WHERE "Age" BETWEEN "18" AND "65"');
 		 */
-		select: function(szSelection){
+		select: function (szSelection) {
 
-			if ( szSelection.match(/WHERE/) ){
+			if (szSelection.match(/WHERE/)) {
 
 				// first time ?
 				// get query parts
 
-				if ( 1 ){
+				if (1) {
 
 					// tokenize
 					// ---------
 					var szTokenA = szSelection.split('WHERE ')[1].split(' ');
 
 					// test for quotes and join the included text parts
-					for ( var ii=0; ii<szTokenA.length; ii++ ){
-						if ( (szTokenA[ii][0] == '"') && (szTokenA[ii][szTokenA[ii].length-1] != '"') ){
-							do{
-								szTokenA[ii] = szTokenA[ii] + " " + szTokenA[ii+1];
-								szTokenA.splice(ii+1,1);
+					for (var ii = 0; ii < szTokenA.length; ii++) {
+						if ((szTokenA[ii][0] == '"') && (szTokenA[ii][szTokenA[ii].length - 1] != '"')) {
+							do {
+								szTokenA[ii] = szTokenA[ii] + " " + szTokenA[ii + 1];
+								szTokenA.splice(ii + 1, 1);
 							}
-							while (szTokenA[ii][szTokenA[ii].length-1] != '"');
+							while (szTokenA[ii][szTokenA[ii].length - 1] != '"');
 						}
 					}
 					this.filterQueryA = [];
-					var	filterObj = {};
-					
+					var filterObj = {};
+
 					var szCombineOp = "";
 
 					// make the query object(s)
@@ -1614,142 +1673,141 @@ $Log:data.js,v $
 					do {
 						var nToken = 0;
 
-						if ( szTokenA.length >= 3 ){
+						if (szTokenA.length >= 3) {
 							filterObj = {};
 							filterObj.szSelectionField = szTokenA[0].replace(/("|)/g, "");
-							filterObj.szSelectionOp	= szTokenA[1];
+							filterObj.szSelectionOp = szTokenA[1];
 							filterObj.szSelectionValue = szTokenA[2].replace(/("|)/g, "");
 							nToken = 3;
 						}
-						if ( filterObj.szSelectionOp == "BETWEEN" ){
-							if ( szTokenA.length >= 5 ){
-								if ( szTokenA[3] == "AND" ){
+						if (filterObj.szSelectionOp == "BETWEEN") {
+							if (szTokenA.length >= 5) {
+								if (szTokenA[3] == "AND") {
 									filterObj.szSelectionValue2 = szTokenA[4];
 									nToken = 5;
 								}
 							}
 						}
 
-						if ( nToken ){
+						if (nToken) {
 
 							// get data table column index for query field
-							for ( var ii=0; ii<this.fields.length; ii++ ){
-								if ( this.fields[ii].id == filterObj.szSelectionField ){
+							for (var ii = 0; ii < this.fields.length; ii++) {
+								if (this.fields[ii].id == filterObj.szSelectionField) {
 									filterObj.nFilterFieldIndex = ii;
 								}
-								if ( this.fields[ii].id == filterObj.szSelectionValue ){
+								if (this.fields[ii].id == filterObj.szSelectionValue) {
 									filterObj.nFilterValueIndex = ii;
 								}
 							}
 							// set query combine operator 
 							filterObj.szCombineOp = szCombineOp;
-							
+
 							// add the query object
 							this.filterQueryA.push(filterObj);
-							szTokenA.splice(0,nToken);
+							szTokenA.splice(0, nToken);
 
-						}else{
-							_alert("data.js - selection error - incomplete query!\nquery: "+szSelection);
+						} else {
+							_alert("data.js - selection error - incomplete query!\nquery: " + szSelection);
 							break;
 						}
-						
+
 						// only 'AND' combination (OR tdb)
-						if ( szTokenA.length && (szTokenA[0] == "AND") ){
+						if (szTokenA.length && (szTokenA[0] == "AND")) {
 							szCombineOp = "AND";
-							szTokenA.splice(0,1);
-						}else
-						if ( szTokenA.length && (szTokenA[0] == "OR") ){
+							szTokenA.splice(0, 1);
+						} else
+						if (szTokenA.length && (szTokenA[0] == "OR")) {
 							szCombineOp = "OR";
-							szTokenA.splice(0,1);
-						}else{
+							szTokenA.splice(0, 1);
+						} else {
 							break;
 						}
 					}
 					while (szTokenA.length);
-					
+
 				}
 
 				this.selection = new Data.Table;
 
-				for ( var i in this.filterQueryA ){
-					if ( typeof this.filterQueryA[i].nFilterFieldIndex === "undefined" ){
+				for (var i in this.filterQueryA) {
+					if (typeof this.filterQueryA[i].nFilterFieldIndex === "undefined") {
 						this.selection.fields = this.fields.slice();
 						this.selection.table.fields = this.table.fields;
-						_LOG("Selection: invalid query: "+szSelection);
+						_LOG("Selection: invalid query: " + szSelection);
 						return this.selection;
 					}
 				}
 
-				for ( var j in this.records ){
+				for (var j in this.records) {
 
 					var allResult = null;
 
-					for ( var i in this.filterQueryA ){
+					for (var i in this.filterQueryA) {
 
 						var result = true;
 						// get the value to test
-						this.__szValue		 = String(this.records[j][this.filterQueryA[i].nFilterFieldIndex]);
-						this.__szSelectionOp	 = this.filterQueryA[i].szSelectionOp; 
+						this.__szValue = String(this.records[j][this.filterQueryA[i].nFilterFieldIndex]);
+						this.__szSelectionOp = this.filterQueryA[i].szSelectionOp;
 						this.__szSelectionValue = this.filterQueryA[i].szSelectionValue;
 						this.__szSelectionValue2 = this.filterQueryA[i].szSelectionValue2;
-						this.__szCombineOp	 = this.filterQueryA[i].szCombineOp; 
+						this.__szCombineOp = this.filterQueryA[i].szCombineOp;
 
 						// GR 26.12.2019 filter value may be column name
-						if (this.filterQueryA[i].nFilterValueIndex != null){
+						if (this.filterQueryA[i].nFilterValueIndex != null) {
 							this.__szSelectionValue = String(this.records[j][this.filterQueryA[i].nFilterValueIndex]);
 						}
-			
+
 						// do the query 
 						// ------------
 						var nValue = __scanValue(this.__szValue);
-						if ( this.__szSelectionOp == "=" ){
-							if ( this.__szSelectionValue == '*' ){
-								result = (this.__szValue.replace(/ /g,"") != "");
-							}else{
-								result = ( (this.__szValue == this.__szSelectionValue) || (nValue == Number(this.__szSelectionValue)) );
+						if (this.__szSelectionOp == "=") {
+							if (this.__szSelectionValue == '*') {
+								result = (this.__szValue.replace(/ /g, "") != "");
+							} else {
+								result = ((this.__szValue == this.__szSelectionValue) || (nValue == Number(this.__szSelectionValue)));
 							}
-						}else
-						if ( this.__szSelectionOp == "<>" ){
-							result = !( (this.__szValue == this.__szSelectionValue) || (nValue == Number(this.__szSelectionValue)) );
-						}else
-						if ( this.__szSelectionOp == ">" ){
-							result = ( nValue > Number(this.__szSelectionValue) );
-						}else
-						if ( this.__szSelectionOp == "<" ){
-							result = ( nValue < Number(this.__szSelectionValue) );
-						}else
-						if ( this.__szSelectionOp == ">=" ){
-							result = ( nValue >= Number(this.__szSelectionValue) );
-						}else
-						if ( this.__szSelectionOp == "<=" ){
-							result = ( nValue <= Number(this.__szSelectionValue) );
-						}else
-						if ( this.__szSelectionOp == "LIKE" ){
-							result = eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
-						}else
-						if ( this.__szSelectionOp == "NOT" ){
-							result = !eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
-						}else
-						if ( this.__szSelectionOp == "IN" ){
-							result = eval("this.__szSelectionValue.match(/\\("+this.__szValue+"\\,/)") || 
-									 eval("this.__szSelectionValue.match(/\\,"+this.__szValue+"\\,/)") ||
-									 eval("this.__szSelectionValue.match(/\\,"+this.__szValue+"\\)/)")
-									;
-						}else
-						if ( (this.__szSelectionOp == "BETWEEN") ){
-							result = ( (nValue >= Number(this.__szSelectionValue)) &&
-									   (nValue <= Number(this.__szSelectionValue2)) );
-						}else {
-						// default operator	
-							result = eval("this.__szValue.match(/"+this.__szSelectionValue.replace(/\//gi,'\\/')+"/i)");
+						} else
+						if (this.__szSelectionOp == "<>") {
+							result = !((this.__szValue == this.__szSelectionValue) || (nValue == Number(this.__szSelectionValue)));
+						} else
+						if (this.__szSelectionOp == ">") {
+							result = (nValue > Number(this.__szSelectionValue));
+						} else
+						if (this.__szSelectionOp == "<") {
+							result = (nValue < Number(this.__szSelectionValue));
+						} else
+						if (this.__szSelectionOp == ">=") {
+							result = (nValue >= Number(this.__szSelectionValue));
+						} else
+						if (this.__szSelectionOp == "<=") {
+							result = (nValue <= Number(this.__szSelectionValue));
+						} else
+						if (this.__szSelectionOp == "LIKE") {
+							result = eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
+						} else
+						if (this.__szSelectionOp == "NOT") {
+							result = !eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
+						} else
+						if (this.__szSelectionOp == "IN") {
+							result = eval("this.__szSelectionValue.match(/\\(" + this.__szValue + "\\,/)") ||
+								eval("this.__szSelectionValue.match(/\\," + this.__szValue + "\\,/)") ||
+								eval("this.__szSelectionValue.match(/\\," + this.__szValue + "\\)/)");
+						} else
+						if ((this.__szSelectionOp == "BETWEEN")) {
+							result = ((nValue >= Number(this.__szSelectionValue)) &&
+								(nValue <= Number(this.__szSelectionValue2)));
+						} else {
+							// default operator	
+							result = eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
 						}
-						if ( this.__szCombineOp == "AND" ){
+						if (this.__szCombineOp == "AND") {
 							allResult = (allResult && result);
-						}else{
+						} else {
 							allResult = (allResult || result);
 						}
 					}
-					if ( allResult ){
+					if (allResult) {
 						this.selection.records.push(this.records[j]);
 						this.selection.table.records++;
 					}
@@ -1757,7 +1815,7 @@ $Log:data.js,v $
 			}
 			this.selection.fields = this.fields.slice();
 			this.selection.table.fields = this.table.fields;
-			return this.selection; 
+			return this.selection;
 		},
 
 		/**
@@ -1792,15 +1850,15 @@ $Log:data.js,v $
 		 *  "aug"   "wood"  22 
 		 *
 		 */
-		aggregate: function(szColumn,szAggregate){
-			
+		aggregate: function (szColumn, szAggregate) {
+
 			var mean = false;
-			
+
 			// GR 06.09.2021 new argument object {}
-			if (szColumn.lead){
+			if (szColumn.lead) {
 				mean = (szColumn.calc && (szColumn.calc == "mean"));
 				szAggregate = szColumn.lead;
-				szColumn = szColumn.column || szColumn.value; 
+				szColumn = szColumn.column || szColumn.value;
 			}
 
 			var szAggregateA = szAggregate.split("|");
@@ -1808,12 +1866,12 @@ $Log:data.js,v $
 
 			var nValueIndex = null;
 
-			for ( var i=0; i<szAggregateA.length; i++ ){
-				for ( var ii=0; ii<this.fields.length; ii++ ){
-					if ( this.fields[ii].id == szAggregateA[i] ){
+			for (var i = 0; i < szAggregateA.length; i++) {
+				for (var ii = 0; ii < this.fields.length; ii++) {
+					if (this.fields[ii].id == szAggregateA[i]) {
 						nAggregateIndexA[i] = ii;
 					}
-					if ( this.fields[ii].id == szColumn ){
+					if (this.fields[ii].id == szColumn) {
 						nValueIndex = ii;
 					}
 				}
@@ -1823,18 +1881,18 @@ $Log:data.js,v $
 
 			xRecords = [];
 			xCount = [];
-			for ( var j in this.records ){
+			for (var j in this.records) {
 				xField = ""
-				for ( var i=0; i<nAggregateIndexA.length; i++ ){
+				for (var i = 0; i < nAggregateIndexA.length; i++) {
 					xField += this.records[j][nAggregateIndexA[i]];
 				}
-				if ( xRecords[xField] ){
+				if (xRecords[xField]) {
 					xRecords[xField][nAggregateIndexA.length] += __scanValue(this.records[j][nValueIndex]);
 					xCount[xField][nAggregateIndexA.length]++;
-				}else{
+				} else {
 					xRecords[xField] = [];
 					xRecords[xField][nAggregateIndexA.length] = __scanValue(this.records[j][nValueIndex]);
-					for ( var i=0; i<nAggregateIndexA.length; i++ ){
+					for (var i = 0; i < nAggregateIndexA.length; i++) {
 						xRecords[xField][i] = this.records[j][nAggregateIndexA[i]];
 					}
 					xCount[xField] = [];
@@ -1842,8 +1900,8 @@ $Log:data.js,v $
 				}
 			}
 
-			for ( var j in xRecords ){
-				if (mean){
+			for (var j in xRecords) {
+				if (mean) {
 					xRecords[j][nAggregateIndexA.length] /= xCount[j][nAggregateIndexA.length];
 				}
 				this.aggregation.records.push(xRecords[j]);
@@ -1851,10 +1909,14 @@ $Log:data.js,v $
 			}
 
 			var fields = [];
-			for ( var i=0; i<szAggregateA.length; i++ ){
-				fields[i] = {id:szAggregateA[i]};
+			for (var i = 0; i < szAggregateA.length; i++) {
+				fields[i] = {
+					id: szAggregateA[i]
+				};
 			}
-			fields[szAggregateA.length] = {id:szColumn};
+			fields[szAggregateA.length] = {
+				id: szColumn
+			};
 
 			this.aggregation.fields = fields;
 			this.aggregation.table.fields = fields;
@@ -1891,53 +1953,53 @@ $Log:data.js,v $
 		 *  "carp"     "005"     39 
 		 *
 		 */
-		condense: function(szColumn,option){
+		condense: function (szColumn, option) {
 
 			var uniqueA = {};
 			var keepIndexA = [];
 
 			// GR 06.09.2021 new argument object {}
-			if (szColumn && szColumn.lead){
+			if (szColumn && szColumn.lead) {
 				option = szColumn;
 				szColumn = option.lead;
 			}
 
 			var uniqueIndex = this.columnIndex(szColumn);
 
-			if ( option && option.keep ){
+			if (option && option.keep) {
 				// option.keep is string
-				if ( typeof(option.keep) == "string" ){
+				if (typeof (option.keep) == "string") {
 					keepIndexA[this.columnIndex(option.keep)] = true;
-				}else
-				// or array of strings
-				for ( i=0; i<option.keep.length; i++ ){
-					keepIndexA[this.columnIndex(option.keep[i])] = true;
-				}
+				} else
+					// or array of strings
+					for (i = 0; i < option.keep.length; i++) {
+						keepIndexA[this.columnIndex(option.keep[i])] = true;
+					}
 			}
 			var __newRecords = [];
-			for ( var j=0; j<this.records.length; j++ ){
+			for (var j = 0; j < this.records.length; j++) {
 				var szTest = String(this.records[j][uniqueIndex]);
-				if ( uniqueA[szTest] != null ){
+				if (uniqueA[szTest] != null) {
 					var k = uniqueA[szTest];
-					for ( v in this.records[j] ){
-						if ( !keepIndexA[v] ) {
-							if ( !isNaN(this.records[j][v]) ){
-								if (option && option.calc == "max"){
-									__newRecords[k][v] = Math.max(Number(__newRecords[k][v]),Number(this.records[j][v]));
-								}else{
+					for (v in this.records[j]) {
+						if (!keepIndexA[v]) {
+							if (!isNaN(this.records[j][v])) {
+								if (option && option.calc == "max") {
+									__newRecords[k][v] = Math.max(Number(__newRecords[k][v]), Number(this.records[j][v]));
+								} else {
 									__newRecords[k][v] = Number(__newRecords[k][v]) + Number(this.records[j][v]);
 								}
-							}else{
-								if ( isNaN(this.records[j][v]) && (__newRecords[k][v] != this.records[j][v]) ){
-									var n = parseFloat(String(__newRecords[k][v]).split(" (+")[1])||0;
+							} else {
+								if (isNaN(this.records[j][v]) && (__newRecords[k][v] != this.records[j][v])) {
+									var n = parseFloat(String(__newRecords[k][v]).split(" (+")[1]) || 0;
 									__newRecords[k][v] = String(__newRecords[k][v]).split(" (+")[0] + " (+" + (++n) + ") ";
 								}
 							}
 						}
-					}				
-				}else{
+					}
+				} else {
 					__newRecords.push(this.records[j].slice());
-					uniqueA[szTest] = __newRecords.length-1;
+					uniqueA[szTest] = __newRecords.length - 1;
 				}
 			}
 			this.records = __newRecords.slice();
@@ -1959,21 +2021,23 @@ $Log:data.js,v $
 		 *    mydata = mydata.groupColumns({'source':['col_1','col_2'],'destination':'col_sum'});
 		 *
 		 */
-		groupColumns: function(options){
-			
+		groupColumns: function (options) {
+
 			var sourceA = options.source;
 			var iA = [];
-			for ( i in sourceA ){
+			for (i in sourceA) {
 				iA[i] = this.column(sourceA[i]).index;
 			}
-			this.addColumn({destination:options.destination},function(row){
+			this.addColumn({
+				destination: options.destination
+			}, function (row) {
 				var value = 0;
-				for ( i in iA ){
+				for (i in iA) {
 					value += Number(row[iA[i]]);
 				}
 				return value;
 			});
-			
+
 			return this;
 		},
 
@@ -1981,7 +2045,7 @@ $Log:data.js,v $
 		 * creates a pivot table <br>
 		 * @param {Object} options the pivot creation parameter
 		 *<table class="w3-table-all notranslate">
- 		 * <tr>
+		 * <tr>
 		 *    <th style="width:20%">Property</th>
 		 *    <th>Description</th>
 		 *  </tr>
@@ -2042,53 +2106,53 @@ $Log:data.js,v $
 		 * 01110812620  Comune 33228               12970    846                    601
 		 * ...
 		 */
-		pivot: function(options){
+		pivot: function (options) {
 
 			options.lead = options.lead || options.rows;
 			options.cols = options.cols || options.columns;
 			options.keep = options.keep || [];
-			options.sum  = options.sum  || [];
+			options.sum = options.sum || [];
 
 			// force string arrays 
 
 			options.lead = __toArray(options.lead);
 			options.cols = __toArray(options.cols);
 			options.keep = __toArray(options.keep);
-			options.sum  = __toArray(options.sum);
-			options.value  = __toArray(options.value);
+			options.sum = __toArray(options.sum);
+			options.value = __toArray(options.value);
 
 			// make field indices
 
 			var indexA = [];
-			for ( var i=0; i<this.fields.length; i++ ){
+			for (var i = 0; i < this.fields.length; i++) {
 				indexA[String(this.fields[i].id)] = i;
 			}
 
 			// check the source columns
 
-			for ( i in options.lead ) {
-				if ( typeof(indexA[options.lead[i]]) == 'undefined' ){
-					_alert("data.pivot - pivot keep column '"+options.lead[i]+"' not found");
+			for (i in options.lead) {
+				if (typeof (indexA[options.lead[i]]) == 'undefined') {
+					_alert("data.pivot - pivot keep column '" + options.lead[i] + "' not found");
 				}
 			}
-			for ( i in options.cols ) {
-				if (  options.cols && (typeof(indexA[options.cols[i]]) == 'undefined') ){
-					_alert("data.pivot - pivot columns source column '"+options.cols[i]+"' not found");
+			for (i in options.cols) {
+				if (options.cols && (typeof (indexA[options.cols[i]]) == 'undefined')) {
+					_alert("data.pivot - pivot columns source column '" + options.cols[i] + "' not found");
 				}
 			}
-			for ( i in options.keep ) {
-				if ( typeof(indexA[options.keep[i]]) == 'undefined' ){
-					_alert("data.pivot - pivot keep column '"+options.keep[i]+"' not found");
+			for (i in options.keep) {
+				if (typeof (indexA[options.keep[i]]) == 'undefined') {
+					_alert("data.pivot - pivot keep column '" + options.keep[i] + "' not found");
 				}
 			}
-			for ( i in options.sum ) {
-				if ( typeof(indexA[options.sum[i]]) == 'undefined' ){
-					_alert("data.pivot - pivot sum column '"+options.sum[i]+"' not found");
+			for (i in options.sum) {
+				if (typeof (indexA[options.sum[i]]) == 'undefined') {
+					_alert("data.pivot - pivot sum column '" + options.sum[i] + "' not found");
 				}
 			}
-			for ( i in options.value ) {
-				if ( typeof(indexA[options.value[i]]) == 'undefined' ){
-					_alert("data.pivot - pivot value column '"+options.value[i]+"' not found");
+			for (i in options.value) {
+				if (typeof (indexA[options.value[i]]) == 'undefined') {
+					_alert("data.pivot - pivot value column '" + options.value[i] + "' not found");
 				}
 			}
 
@@ -2098,59 +2162,61 @@ $Log:data.js,v $
 			var colA = [];
 			var data = this.records;
 
-			for ( var row=0; row<data.length; row++ ){
+			for (var row = 0; row < data.length; row++) {
 
-				var szRow  = String(data[row][indexA[options.lead[0]]]);
-				for ( var k=1; k<options.lead.length; k++ ){
-					szRow += "|"+data[row][indexA[options.lead[k]]];
+				var szRow = String(data[row][indexA[options.lead[0]]]);
+				for (var k = 1; k < options.lead.length; k++) {
+					szRow += "|" + data[row][indexA[options.lead[k]]];
 				}
-                
-  				var szCol  = String(data[row][indexA[options.cols[0]]]);
-				
+
+				var szCol = String(data[row][indexA[options.cols[0]]]);
+
 				var nValue = 1;
-				if ( options.value && options.value.length ){
+				if (options.value && options.value.length) {
 					nValue = 0;
-					for ( var k=0; k<options.value.length; k++ ){
-						nValue += options.value[k]?__scanValue(data[row][indexA[options.value[k]]]):1;
+					for (var k = 0; k < options.value.length; k++) {
+						nValue += options.value[k] ? __scanValue(data[row][indexA[options.value[k]]]) : 1;
 					}
 				}
-				if ( !szCol || szCol.length < 1 ){
+				if (!szCol || szCol.length < 1) {
 					szCol = "undefined"
 				}
-				if ( !colA[szCol] ){
+				if (!colA[szCol]) {
 					colA[szCol] = 0;
 				}
-				if ( !rowA[szRow] ){
-					rowA[szRow] = {"Total":0};
-					for ( var k=0; k<options.keep.length; k++ ){
+				if (!rowA[szRow]) {
+					rowA[szRow] = {
+						"Total": 0
+					};
+					for (var k = 0; k < options.keep.length; k++) {
 						rowA[szRow][options.keep[k]] = data[row][indexA[options.keep[k]]];
 					}
-					for ( var k=0; k<options.sum.length; k++ ){
+					for (var k = 0; k < options.sum.length; k++) {
 						rowA[szRow][options.sum[k]] = Number(data[row][indexA[options.sum[k]]]);
 					}
-				}else{
-					for ( var k=0; k<options.keep.length; k++ ){
-						if (data[row][indexA[options.keep[k]]].length && 
-							(rowA[szRow][options.keep[k]] != data[row][indexA[options.keep[k]]])){
+				} else {
+					for (var k = 0; k < options.keep.length; k++) {
+						if (data[row][indexA[options.keep[k]]].length &&
+							(rowA[szRow][options.keep[k]] != data[row][indexA[options.keep[k]]])) {
 							rowA[szRow][options.keep[k]] = data[row][indexA[options.keep[k]]];
 						}
 					}
-					for ( var k=0; k<options.sum.length; k++ ){
+					for (var k = 0; k < options.sum.length; k++) {
 						rowA[szRow][options.sum[k]] += Number(data[row][indexA[options.sum[k]]]);
 					}
 				}
 
 				rowA[szRow]["Total"] += nValue;
 
-				if ( !rowA[szRow][szCol] ){
+				if (!rowA[szRow][szCol]) {
 					rowA[szRow][szCol] = nValue;
-					rowA[szRow][szCol+"count"] = 1;
-				}else{
-					if (options.calc == "max"){
-						rowA[szRow][szCol] = Math.max(nValue,rowA[szRow][szCol]);
-					}else{
+					rowA[szRow][szCol + "count"] = 1;
+				} else {
+					if (options.calc == "max") {
+						rowA[szRow][szCol] = Math.max(nValue, rowA[szRow][szCol]);
+					} else {
 						rowA[szRow][szCol] += nValue;
-						rowA[szRow][szCol+"count"]++;
+						rowA[szRow][szCol + "count"]++;
 					}
 				}
 			}
@@ -2162,53 +2228,63 @@ $Log:data.js,v $
 			// ------------------------------------------------
 
 			// lead
-			for ( var k=0; k<options.lead.length; k++ ){
-				this.__pivot.fields.push({id:options.lead[k]});
+			for (var k = 0; k < options.lead.length; k++) {
+				this.__pivot.fields.push({
+					id: options.lead[k]
+				});
 			}
 			// keep
-			for ( var k=0; k<options.keep.length; k++ ){
-				this.__pivot.fields.push({id:options.keep[k]});
+			for (var k = 0; k < options.keep.length; k++) {
+				this.__pivot.fields.push({
+					id: options.keep[k]
+				});
 			}
 			// sum
-			for ( var k=0; k<options.sum.length; k++ ){
-				this.__pivot.fields.push({id:options.sum[k]});
+			for (var k = 0; k < options.sum.length; k++) {
+				this.__pivot.fields.push({
+					id: options.sum[k]
+				});
 			}
 			// cols
-			for ( var a in colA ){
-				this.__pivot.fields.push({id:a});
+			for (var a in colA) {
+				this.__pivot.fields.push({
+					id: a
+				});
 			}
 			//totale
-			this.__pivot.fields.push({id:"Total"});
+			this.__pivot.fields.push({
+				id: "Total"
+			});
 
 
 			// make the values
 			// ----------------
-			for ( var a in rowA ){
+			for (var a in rowA) {
 
 				// collect values per place
 				var valueA = new Array();
 
 				// lead
 				var leadA = a.split("|");
-				for ( var k=0; k<leadA.length; k++ ){
+				for (var k = 0; k < leadA.length; k++) {
 					valueA.push(leadA[k]);
 				}
 
 				// keep
-				for ( var k=0; k<options.keep.length; k++ ){
+				for (var k = 0; k < options.keep.length; k++) {
 					valueA.push(rowA[a][options.keep[k]]);
 				}
 				// sum
-				for ( var k=0; k<options.sum.length; k++ ){
+				for (var k = 0; k < options.sum.length; k++) {
 					valueA.push(rowA[a][options.sum[k]]);
 				}
 
 				// cols
-				for ( var t in colA ){
-					if ( options.calc == "mean" ){
-						valueA.push((rowA[a][t]||0)/(rowA[a][t+"count"]||1));
-					}else{
-						valueA.push(rowA[a][t]||0);
+				for (var t in colA) {
+					if (options.calc == "mean") {
+						valueA.push((rowA[a][t] || 0) / (rowA[a][t + "count"] || 1));
+					} else {
+						valueA.push(rowA[a][t] || 0);
 					}
 				}
 
@@ -2220,7 +2296,7 @@ $Log:data.js,v $
 				this.__pivot.table.records++;
 			}
 
-			return(this.__pivot);
+			return (this.__pivot);
 		},
 
 		/**
@@ -2228,7 +2304,7 @@ $Log:data.js,v $
 		 * which only contains the specified columns
 		 * @param options {object} the subtable columns definition; use either 'columns' or 'fields'
 		 *<table class="w3-table-all notranslate">
- 		 * <tr>
+		 * <tr>
 		 *    <th style="width:20%">Property</th>
 		 *    <th>Description</th>
 		 *  </tr>
@@ -2248,29 +2324,31 @@ $Log:data.js,v $
 		 * @example
 		 * subTable = table.subtable({"fields":['comune_scr','provincia_scr','Lat','Lon']});
 		 */
-		subtable: function(options){
+		subtable: function (options) {
 
 			this.__subt = new Data.Table;
 
-			if ( options.fields ){
+			if (options.fields) {
 				options.columns = [];
-				for ( var i=0; i<options.fields.length; i++ ){
-					for ( var ii=0; ii<this.fields.length; ii++ ){
-						if ( this.fields[ii].id == options.fields[i] ){
+				for (var i = 0; i < options.fields.length; i++) {
+					for (var ii = 0; ii < this.fields.length; ii++) {
+						if (this.fields[ii].id == options.fields[i]) {
 							options.columns.push(ii);
 						}
 					}
 				}
 			}
-			
+
 			var indexA = [];
-			for ( var i=0; i<options.columns.length; i++ ){
-				this.__subt.fields.push({id:String(this.fields[options.columns[i]].id)});
+			for (var i = 0; i < options.columns.length; i++) {
+				this.__subt.fields.push({
+					id: String(this.fields[options.columns[i]].id)
+				});
 				this.__subt.table.fields++;
 			}
-			for ( var j in this.records ){
+			for (var j in this.records) {
 				var records = [];
-				for ( var i=0; i<options.columns.length; i++ ){
+				for (var i = 0; i < options.columns.length; i++) {
 					records.push(this.records[j][options.columns[i]]);
 				}
 				this.__subt.records.push(records);
@@ -2285,39 +2363,44 @@ $Log:data.js,v $
 		 * @type Data.Table
 		 * @return the sorted table
 		 */
-		sort: function(szColumn){
+		sort: function (szColumn) {
 			var valuesA = this.column(szColumn).values();
 			var sortA = [];
-			for ( var i=0; i<valuesA.length; i++ )	{
-				sortA.push({index:i,value:valuesA[i]});
+			for (var i = 0; i < valuesA.length; i++) {
+				sortA.push({
+					index: i,
+					value: valuesA[i]
+				});
 			}
-			sortA.sort(function(a,b){return((a.value < b.value)?-1:1)});
+			sortA.sort(function (a, b) {
+				return ((a.value < b.value) ? -1 : 1)
+			});
 			var records = [];
-			for ( var i=0; i<sortA.length; i++ )	{
+			for (var i = 0; i < sortA.length; i++) {
 				records.push(this.records[sortA[i].index]);
 			}
 			this.records = records;
 			return this;
 		},
-		
+
 		/**
 		 * appends the rows of a data table to the actual tableby values of a given column
 		 * @param {Data.Table} the source of the rows to append
 		 * @type Data.Table
 		 * @return the extended table
 		 */
-		append: function(sourceTable){
+		append: function (sourceTable) {
 			console.log("test");
-			if ( this.table.fields.length != sourceTable.table.fields.length ){
+			if (this.table.fields.length != sourceTable.table.fields.length) {
 				return null;
 			}
-			for ( var i=0; i<this.table.fields.length; i++ )	{
-				if ( this.table.fields[i].id != sourceTable.table.fields[i].id ){
+			for (var i = 0; i < this.table.fields.length; i++) {
+				if (this.table.fields[i].id != sourceTable.table.fields[i].id) {
 					return null;
 				}
 			}
 			var records = sourceTable.records;
-			for ( var i=0; i<records.length; i++ )	{
+			for (var i = 0; i < records.length; i++) {
 				this.records.push(records[i]);
 			}
 			this.table.records = this.records.length;
@@ -2330,12 +2413,12 @@ $Log:data.js,v $
 		 * array elements are of type:
 		 * { name_1: value_1, name_2: value_2, ... }
 		 */
-		json: function(){
-			
+		json: function () {
+
 			this.__json = [];
-			for ( var r in this.records ){
+			for (var r in this.records) {
 				var row = {};
-				for ( var c in this.fields )	{
+				for (var c in this.fields) {
 					row[String(this.fields[c].id)] = this.records[r][c];
 				}
 				this.__json.push(row);
@@ -2349,21 +2432,21 @@ $Log:data.js,v $
 	//...................................................................
 	// local helper
 	//...................................................................
-	__myNumber = function(value){
-		var number = parseFloat(value.replace(/\./g,"").replace(/\,/g,"."));
-		return isNaN(number)?0:number;
+	__myNumber = function (value) {
+		var number = parseFloat(value.replace(/\./g, "").replace(/\,/g, "."));
+		return isNaN(number) ? 0 : number;
 	};
 
-	__scanValue = function(nValue){
+	__scanValue = function (nValue) {
 		// strips blanks inside numbers (e.g. 1 234 456 --> 1234456)
-		if ( String(nValue).match(/,/) ){
-			var number = parseFloat(String(nValue).replace(/\./gi,"").replace(/,/gi,"."));
-			return isNaN(number)?0:number;
-		}else{
-			var number = parseFloat(String(nValue).replace(/ /gi,""));
-			return isNaN(number)?0:number;
+		if (String(nValue).match(/,/)) {
+			var number = parseFloat(String(nValue).replace(/\./gi, "").replace(/,/gi, "."));
+			return isNaN(number) ? 0 : number;
+		} else {
+			var number = parseFloat(String(nValue).replace(/ /gi, ""));
+			return isNaN(number) ? 0 : number;
 		}
-	 };
+	};
 
 
 	// ---------------------------------------------------------------------------------
@@ -2391,24 +2474,26 @@ $Log:data.js,v $
 	 *  create: [optional] an array of columns to creaate
 	 *          to define only if not wished to create all of above listed time columns
 	 */
-	Data.Table.prototype.addTimeColumns = function(options){
+	Data.Table.prototype.addTimeColumns = function (options) {
 
-		if ( !options.source ){
+		if (!options.source) {
 			return null;
 		}
 
-		for (var column in this.fields )	{
-			if ( this.fields[column].id == options.source ){
+		for (var column in this.fields) {
+			if (this.fields[column].id == options.source) {
 
 				// make fields object
 				// ------------------
 
 				// copy orig fields 
-				var timeCollA = options.create || ['date','year','month','day','hour'];
+				var timeCollA = options.create || ['date', 'year', 'month', 'day', 'hour'];
 
 				// add new time columns 
-				for ( var i=0; i<timeCollA.length; i++ ){
-					this.fields.push({id:String(timeCollA[i])});
+				for (var i = 0; i < timeCollA.length; i++) {
+					this.fields.push({
+						id: String(timeCollA[i])
+					});
 					this.table.fields++;
 				}
 
@@ -2416,29 +2501,29 @@ $Log:data.js,v $
 				// ------------------
 				var length = this.records.length;
 				var j = 0;
-				for ( j=0; j<length; j++ ){
+				for (j = 0; j < length; j++) {
 
 					// add new time column values
 					var d = new Date(this.records[j][column]);
-					if (d){
-						for ( var i=0; i<timeCollA.length; i++ ){
-							switch ( timeCollA[i] )	{
-							case 'date':
-								var date = String(d.getDate()) + "." + String(d.getMonth()+1) + "." + String(d.getFullYear());
-								this.records[j].push(date);
-								break;
-							case 'year':
-								this.records[j].push(d.getFullYear());
-								break;
-							case 'month':
-								this.records[j].push(d.getMonth()+1);
-								break;
-							case 'day':
-								this.records[j].push(d.getDay());
-								break;
-							case 'hour':
-								this.records[j].push(d.getHours());
-								break;
+					if (d) {
+						for (var i = 0; i < timeCollA.length; i++) {
+							switch (timeCollA[i]) {
+								case 'date':
+									var date = String(d.getDate()) + "." + String(d.getMonth() + 1) + "." + String(d.getFullYear());
+									this.records[j].push(date);
+									break;
+								case 'year':
+									this.records[j].push(d.getFullYear());
+									break;
+								case 'month':
+									this.records[j].push(d.getMonth() + 1);
+									break;
+								case 'day':
+									this.records[j].push(d.getDay());
+									break;
+								case 'hour':
+									this.records[j].push(d.getHours());
+									break;
 							}
 						}
 					}
@@ -2465,7 +2550,7 @@ $Log:data.js,v $
 		this.table = null;
 		this.index = null;
 		this.valueA = null;
-		};
+	};
 
 	Data.Column.prototype = {
 		/**
@@ -2476,9 +2561,9 @@ $Log:data.js,v $
 		 * @example
 		 *    var sumArray = mydata.column('total').values();
 		 */
-		values: function(){
+		values: function () {
 			this.valueA = [];
-			for ( var i in this.table.records ){
+			for (var i in this.table.records) {
 				this.valueA.push(this.table.records[i][this.index]);
 			}
 			return this.valueA;
@@ -2492,9 +2577,9 @@ $Log:data.js,v $
 		 * @example
 		 *    var sumArray = mydata.column('total').values();
 		 */
-		uniqueValues: function(){
+		uniqueValues: function () {
 			this.valueA = [];
-			for ( var i in this.table.records ){
+			for (var i in this.table.records) {
 				this.valueA.push(this.table.records[i][this.index]);
 			}
 			return this.valueA.filter(__onlyUnique);
@@ -2512,13 +2597,13 @@ $Log:data.js,v $
 		 *            return( String(d.getDate()) + "." + String(d.getMonth()+1) + "." + String(d.getFullYear()) );
 		 *     });
 		 */
-		map: function(callback){
+		map: function (callback) {
 
 			// make new record values 
 			// ----------------------
-			for ( var j in this.table.records ){
+			for (var j in this.table.records) {
 				// query new column value by callback
-				this.table.records[j][this.index] = callback(this.table.records[j][this.index],this.table.records[j],this.index);
+				this.table.records[j][this.index] = callback(this.table.records[j][this.index], this.table.records[j], this.index);
 			}
 
 			return this;
@@ -2532,12 +2617,12 @@ $Log:data.js,v $
 		 * @example
 		 *    mydata.column('timestamp').rename('time');
 		 */
-		rename: function(szName){
+		rename: function (szName) {
 
 			this.table.fields[this.index].id = szName;
 			return this;
 		},
-		
+
 		/**
 		 * remove the column
 		 * @type void
@@ -2545,11 +2630,11 @@ $Log:data.js,v $
 		 * @example
 		 *    mydata.column('timestamp').remove();
 		 */
-		remove: function(){
+		remove: function () {
 
-			this.table.fields.splice(this.index,1);
-			for ( var j in this.table.records ){
-				this.table.records[j].splice(this.index,1);
+			this.table.fields.splice(this.index, 1);
+			for (var j in this.table.records) {
+				this.table.records[j].splice(this.index, 1);
 			}
 			this.table.table.fields--;
 			return this;
@@ -2559,14 +2644,14 @@ $Log:data.js,v $
 	// ----------------------------------------------------
 	// W R A P  Data.Table  functions to Data.Feed object
 	// ----------------------------------------------------
-	
+
 	/**
 	 * extract the values of one column from a data table
 	 * @param szColumn the name of the column to extract from loaded data
 	 * @type array
 	 * @return column values array or null
 	 */
-	Data.Feed.prototype.column = function(szColumn){ 
+	Data.Feed.prototype.column = function (szColumn) {
 		return this.dbtable.column(szColumn);
 	};
 
@@ -2576,7 +2661,7 @@ $Log:data.js,v $
 	 * @type boolean
 	 * @return true if item passes the filter
 	 */
-	Data.Feed.prototype.select= function(szSelection){
+	Data.Feed.prototype.select = function (szSelection) {
 		return this.dbtable.select(szSelection);
 	};
 
@@ -2586,8 +2671,8 @@ $Log:data.js,v $
 	 * @type boolean
 	 * @return true if item passes the filter
 	 */
-	Data.Feed.prototype.aggregate= function(szColumn,szAggregation){
-		return this.dbtable.aggregate(szColumn,szAggregation);
+	Data.Feed.prototype.aggregate = function (szColumn, szAggregation) {
+		return this.dbtable.aggregate(szColumn, szAggregation);
 	};
 
 	/**
@@ -2596,7 +2681,7 @@ $Log:data.js,v $
 	 * @type feed
 	 * @return the reverted feed
 	 */
-	Data.Feed.prototype.revert= function(){
+	Data.Feed.prototype.revert = function () {
 		return this.dbtable.revert();
 	};
 
@@ -2606,7 +2691,7 @@ $Log:data.js,v $
 	 * @type feed
 	 * @return the reversed feed
 	 */
-	Data.Feed.prototype.reverse = function(){
+	Data.Feed.prototype.reverse = function () {
 		return this.dbtable.reverse();
 	};
 
@@ -2616,7 +2701,7 @@ $Log:data.js,v $
 	 * @type boolean
 	 * @return true if item passes the filter
 	 */
-	Data.Feed.prototype.pivot= function(options){
+	Data.Feed.prototype.pivot = function (options) {
 		return this.dbtable.pivot(options);
 	};
 
@@ -2626,7 +2711,7 @@ $Log:data.js,v $
 	 * @type boolean
 	 * @return true if item passes the filter
 	 */
-	Data.Feed.prototype.subtable= function(options){
+	Data.Feed.prototype.subtable = function (options) {
 		return this.dbtable.subtable(options);
 	};
 
@@ -2636,7 +2721,7 @@ $Log:data.js,v $
 	 * @type feed
 	 * @return the enhanced feed
 	 */
-	Data.Feed.prototype.addTimeColumns= function(options){
+	Data.Feed.prototype.addTimeColumns = function (options) {
 		return this.dbtable.addTimeColumns(options);
 	};
 
@@ -2673,11 +2758,11 @@ $Log:data.js,v $
 	Data.Broker = function (options) {
 		this.souceQueryA = [];
 		this.options = options;
-		if ( options ){
+		if (options) {
 			this.parseDefinition(options);
-		} 
-		this.onNotify = function(){};
-		this.onError = function(){};
+		}
+		this.onNotify = function () {};
+		this.onError = function () {};
 	};
 
 	/**
@@ -2699,16 +2784,16 @@ $Log:data.js,v $
 		 *								   </table> 
 		 * @type Data.Broker
 		 * @return the Data.Broker object
-		*/
-		addSource: function(szUrl,szType){
-			_LOG("Data.Broker.addSource: "+szUrl);
+		 */
+		addSource: function (szUrl, szType) {
+			_LOG("Data.Broker.addSource: " + szUrl);
 			this.souceQueryA.push({
-				url:szUrl,
-				type:szType,
-				data:null,
-				result:null,
-				next:this
-				});
+				url: szUrl,
+				type: szType,
+				data: null,
+				result: null,
+				next: this
+			});
 			return this;
 		},
 
@@ -2727,9 +2812,9 @@ $Log:data.js,v $
 		 *      .addSource("https://raw.githubusercontent.com/ondata/elezionipolitiche2018/master/dati/scrutiniCI_cm.csv","csv")
 		 *      .setCallback(onSuccess)
 		 *      .realize();
-	     * @deprecated use callback in realize()
-		*/
-		setCallback: function(callback){
+		 * @deprecated use callback in realize()
+		 */
+		setCallback: function (callback) {
 			this.callback = callback;
 			return this;
 		},
@@ -2750,18 +2835,18 @@ $Log:data.js,v $
 		 *		var camera_geopolitico_italia   = dataA[2];
 		 *		...
 		 *	});
-		*/
-		realize: function(callback){
-			this.callback = callback || this.callback; 
-			for ( var i in this.souceQueryA ){
-				if ( this.souceQueryA[i].url && !this.souceQueryA[i].result ){
+		 */
+		realize: function (callback) {
+			this.callback = callback || this.callback;
+			for (var i in this.souceQueryA) {
+				if (this.souceQueryA[i].url && !this.souceQueryA[i].result) {
 					this.getData(this.souceQueryA[i]);
 					this.onNotify(i);
 					return this;
 				}
 			}
 			this.data = [];
-			for ( var i in this.souceQueryA ){
+			for (var i in this.souceQueryA) {
 				this.data.push(this.souceQueryA[i].data);
 			}
 			this.callback(this.data);
@@ -2784,12 +2869,12 @@ $Log:data.js,v $
 		 *          ...
 		 *	});
 		 */
-		
-		error: function(onError){
-			this.onError = onError || this.onError; 
+
+		error: function (onError) {
+			this.onError = onError || this.onError;
 			return this;
 		},
-		
+
 		/**
 		 * define notify function
 		 * @param {function(exeption)} onError a user defined function to call when notify occurs 
@@ -2806,8 +2891,8 @@ $Log:data.js,v $
 		 *          ...
 		 *	});
 		 */
-		notify: function(onNotify){
-			this.onNotify = onNotify || this.onNotify; 
+		notify: function (onNotify) {
+			this.onNotify = onNotify || this.onNotify;
 			return this;
 		}
 	};
@@ -2819,39 +2904,43 @@ $Log:data.js,v $
 	 * @param szType type of the data (csv,...)
 	 * @private
 	 * @type void
-	*/
-		Data.Broker.prototype.parseDefinition = function(definition){
-			this.callback = definition.callback || null;
-		};
+	 */
+	Data.Broker.prototype.parseDefinition = function (definition) {
+		this.callback = definition.callback || null;
+	};
 	/**
 	 * internal method to get one data from the specified source
 	 * @method getData
 	 * @param query object with the definition of the data source
 	 * @private
 	 * @type void
-	*/
-		Data.Broker.prototype.getData = function(query){
-			query.feed = Data.feed({"source":query.url,"type":query.type,"options":query.next.options}).load(function(mydata){
-				query.data = mydata;
-				query.result = "success";
-				query.next.realize();
-				query.data.raw = query.feed.data;
-			}).error(function(e){
-				query.data = null;
-				query.result = "error";
-				query.next.realize();
-			});
-		};
+	 */
+	Data.Broker.prototype.getData = function (query) {
+		query.feed = Data.feed({
+			"source": query.url,
+			"type": query.type,
+			"options": query.next.options
+		}).load(function (mydata) {
+			query.data = mydata;
+			query.result = "success";
+			query.next.realize();
+			query.data.raw = query.feed.data;
+		}).error(function (e) {
+			query.data = null;
+			query.result = "error";
+			query.next.realize();
+		});
+	};
 	/**
 	 * set the broker result as the new Data.Table in the parent Data.Feed object
 	 * @method setData
 	 * @param data a 2 dim data array
 	 * @private
 	 * @type void
-	*/
-		Data.Broker.prototype.setData = function(data){
-			this.parent.__doCreateTableDataObject(data,null,this.parent.options);
-		};
+	 */
+	Data.Broker.prototype.setData = function (data) {
+		this.parent.__doCreateTableDataObject(data, null, this.parent.options);
+	};
 
 	// Instantiates a broker object with 
 	// an object literal with `data options`.
@@ -2899,7 +2988,7 @@ $Log:data.js,v $
 	Data.Merger = function (options) {
 		this.sourceA = [];
 		this.options = options;
-		if ( options ){
+		if (options) {
 			this.parseDefinition(options);
 		}
 	};
@@ -2915,12 +3004,12 @@ $Log:data.js,v $
 		 *   .addSource(prezzi,{lookup:"idImpianto",columns:["descCarburante","prezzo","isSelf","dtComu"],label:["CARB1","PREZZO","SELF","COM"]});
 		 * @type Data.Merger
 		 * @return the Data.Merger object
-		*/
-		addSource: function(source,option){
+		 */
+		addSource: function (source, option) {
 			this.sourceA.push({
-				data:source,
-				opt:option
-				});
+				data: source,
+				opt: option
+			});
 			return this;
 		},
 
@@ -2935,8 +3024,8 @@ $Log:data.js,v $
 		 *      .addSource(impianti,{lookup:"idImpianto",columns:["Bandiera","Latitudine","Longitudine"]});
 		 *		.setOuputColumns(["desCaburante","prezzo"])
 		 *      .realize();
-		*/
-		setOutputColumns: function(columnsA){
+		 */
+		setOutputColumns: function (columnsA) {
 			this.outColumnsA = columnsA;
 			return this;
 		},
@@ -2953,102 +3042,108 @@ $Log:data.js,v $
 		 * .realize(function(newData){
 		 *     ixmaps.setExternalData(newData,{"type":"jsonDB","name":"prezzi_tipo_latlon"});
 		 * });	
-		*/
-		realize: function(callback){
+		 */
+		realize: function (callback) {
 
-			this.callback = callback || this.callback; 
+			this.callback = callback || this.callback;
 
 			_LOG("DataMerger: >>>");
 
-			var indexAA = []; 
+			var indexAA = [];
 
-			for ( i in this.sourceA ){
-				
+			for (i in this.sourceA) {
+
 				var source = this.sourceA[i];
 
 				source.opt.columns = source.opt.columns || source.data.columnNames || source.data.columnNames();
-				source.opt.label   = source.opt.label || [];
+				source.opt.label = source.opt.label || [];
 
 				source.opt.columns = __toArray(source.opt.columns);
-				source.opt.label   = __toArray(source.opt.label);
+				source.opt.label = __toArray(source.opt.label);
 
-				if ( !this.sourceA[i].data ){
-					_alert("DataMerger: source '"+i+"' not found");
-				}
-				
-				if ( !this.sourceA[i].data[0] ){
-					this.sourceA[i].data = this.sourceA[i].data.getArray(); 
+				if (!this.sourceA[i].data) {
+					_alert("DataMerger: source '" + i + "' not found");
 				}
 
-				if ( !this.sourceA[i].data[0] ){
-					_alert("DataMerger: source '"+i+"' not found or not of type Array");
+				if (!this.sourceA[i].data[0]) {
+					this.sourceA[i].data = this.sourceA[i].data.getArray();
+				}
+
+				if (!this.sourceA[i].data[0]) {
+					_alert("DataMerger: source '" + i + "' not found or not of type Array");
 				}
 
 				var index = [];
-				for ( ii in this.sourceA[i].data[0] )	{
+				for (ii in this.sourceA[i].data[0]) {
 
-					if ( this.sourceA[i].data[0][ii] == this.sourceA[i].opt.lookup ){
+					if (this.sourceA[i].data[0][ii] == this.sourceA[i].opt.lookup) {
 						index[this.sourceA[i].opt.lookup] = ii;
 					}
 
-					for ( iii in this.sourceA[i].opt.columns )	{
-						if (!this.sourceA[i].opt.label[iii]){
-							this.sourceA[i].opt.label[iii] = this.sourceA[i].opt.columns[iii] + "."+(Number(i)+1)+""; 
+					for (iii in this.sourceA[i].opt.columns) {
+						if (!this.sourceA[i].opt.label[iii]) {
+							this.sourceA[i].opt.label[iii] = this.sourceA[i].opt.columns[iii] + "." + (Number(i) + 1) + "";
 						}
-						if ( this.sourceA[i].data[0][ii] == this.sourceA[i].opt.columns[iii] ){
+						if (this.sourceA[i].data[0][ii] == this.sourceA[i].opt.columns[iii]) {
 							index[this.sourceA[i].opt.label[iii]] = ii;
 						}
 					}
 				}
 				// check completeness
-				for ( iii in this.sourceA[i].opt.columns )	{
-					if ( !index[this.sourceA[i].opt.label[iii]]){
-						_LOG("DataMerger: '"+this.sourceA[i].opt.label[iii]+"' not found");
+				for (iii in this.sourceA[i].opt.columns) {
+					if (!index[this.sourceA[i].opt.label[iii]]) {
+						_LOG("DataMerger: '" + this.sourceA[i].opt.label[iii] + "' not found");
 					}
 				}
 				indexAA.push(index);
 			}
 
 			var labelA = [];
-			for ( i in this.sourceA ){
-				for ( ii in this.sourceA[i].opt.label )	{
+			for (i in this.sourceA) {
+				for (ii in this.sourceA[i].opt.label) {
 					labelA.push(this.sourceA[i].opt.label[ii]);
 				}
 			}
 
-			if ( !this.outColumnsA ){
+			if (!this.outColumnsA) {
 				this.outColumnsA = [];
-				for ( i in labelA ){
+				for (i in labelA) {
 					this.outColumnsA.push(labelA[i]);
 				}
 			}
 
 			var outColumnsLookupA = [];
-			for ( i in this.outColumnsA ){
-				for ( ii in indexAA ){
-					for ( iii in indexAA[ii] ){
-						if ( iii == this.outColumnsA[i] ){
-							outColumnsLookupA[iii] = {input:ii,index:indexAA[ii][iii] };
+			for (i in this.outColumnsA) {
+				for (ii in indexAA) {
+					for (iii in indexAA[ii]) {
+						if (iii == this.outColumnsA[i]) {
+							outColumnsLookupA[iii] = {
+								input: ii,
+								index: indexAA[ii][iii]
+							};
 						}
 					}
 				}
 			}
 
-			for ( i in this.outColumnsA ){
-				if ( !outColumnsLookupA[this.outColumnsA[i]] ){
+			for (i in this.outColumnsA) {
+				if (!outColumnsLookupA[this.outColumnsA[i]]) {
 
-					for ( ii in this.sourceA[0].data[0] )	{
-						if ( this.sourceA[0].data[0][ii] == this.outColumnsA[i] ){
-							outColumnsLookupA[this.outColumnsA[i]] = {input:0,index:ii }
+					for (ii in this.sourceA[0].data[0]) {
+						if (this.sourceA[0].data[0][ii] == this.outColumnsA[i]) {
+							outColumnsLookupA[this.outColumnsA[i]] = {
+								input: 0,
+								index: ii
+							}
 						}
 					}
 				}
 			}
 
 			this.namedSourceA = [];
-			for ( i=1; i<this.sourceA.length; i++ ){
+			for (i = 1; i < this.sourceA.length; i++) {
 				this.namedSourceA[i] = [];
-				for ( ii=1; ii<this.sourceA[i].data.length; ii++ ){
+				for (ii = 1; ii < this.sourceA[i].data.length; ii++) {
 					this.namedSourceA[i][String(this.sourceA[i].data[ii][indexAA[i][this.sourceA[i].opt.lookup]])] = this.sourceA[i].data[ii];
 				}
 			}
@@ -3056,26 +3151,25 @@ $Log:data.js,v $
 			var newData = [];
 			newData.push(this.outColumnsA);
 
-			for ( i=1; i<this.sourceA[0].data.length; i++ ){
-				var	lookup = String(this.sourceA[0].data[i][[indexAA[0][this.sourceA[0].opt.lookup]]]);
+			for (i = 1; i < this.sourceA[0].data.length; i++) {
+				var lookup = String(this.sourceA[0].data[i][[indexAA[0][this.sourceA[0].opt.lookup]]]);
 
 				var row = [];
-					
-				for ( ii in this.outColumnsA ){
+
+				for (ii in this.outColumnsA) {
 					var ll = outColumnsLookupA[this.outColumnsA[ii]];
-					if ( ll ){
-						if ( ll.input == 0 ){
+					if (ll) {
+						if (ll.input == 0) {
 							row.push(this.sourceA[0].data[i][ll.index]);
-						}else{
-							if (this.namedSourceA[ll.input][lookup]){
+						} else {
+							if (this.namedSourceA[ll.input][lookup]) {
 								row.push(this.namedSourceA[ll.input][lookup][ll.index]);
-							}else{
+							} else {
 								row.push(" ");
 							}
 						}
-					}
-					else{
-						_alert("DataMerger - missing \""+this.outColumnsA[ii] + "\" in label:[...]");
+					} else {
+						_alert("DataMerger - missing \"" + this.outColumnsA[ii] + "\" in label:[...]");
 						return null;
 					}
 				}
@@ -3088,7 +3182,7 @@ $Log:data.js,v $
 			var dbTable = new Data.Table();
 			dbTable.setArray(newData);
 
-			if ( this.callback ){
+			if (this.callback) {
 				this.callback(dbTable);
 			}
 
@@ -3111,12 +3205,12 @@ $Log:data.js,v $
 		 *          ...
 		 *	});
 		 */
-		error: function(onError){
-			this.onError = onError || this.onError; 
+		error: function (onError) {
+			this.onError = onError || this.onError;
 			return this;
 		}
 	};
-	
+
 	// @factory Data.merger()
 	// Instantiates a Data.Merger
 	//
@@ -3130,16 +3224,16 @@ $Log:data.js,v $
 	// =====================================================================
 
 	// version message
-	console.log("*** data.js "+Data.version+" ***");
+	console.log("*** data.js " + Data.version + " ***");
 
 	// alert handling
-	var _alert = function(szAlert){
-		console.log("data.js v"+Data.version+": "+szAlert);
+	var _alert = function (szAlert) {
+		console.log("data.js v" + Data.version + ": " + szAlert);
 	};
 
-/**
- * end of namespace
- */
+	/**
+	 * end of namespace
+	 */
 
 
 }(window, document));
