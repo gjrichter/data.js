@@ -1010,7 +1010,7 @@ $Log:data.js,v $
 			}
 
 			for (var a in data[0]) {
-				if (typeof (data[0][a]) == "object") {
+				if ((typeof (data[0][a]) == "object") && (data[0][a] != null)) {
 					for (var b in data[0][a]) {
 						if (typeof (data[0][a][b]) == "object") {
 							for (var c in data[0][a][b]) {
@@ -1120,6 +1120,68 @@ $Log:data.js,v $
 				for (p = 0; p < dataA[0].length - 1; p++) {
 					if (typeof data.features[i].properties[dataA[0][p]] === "object") {
 						row.push(JSON.stringify(data.features[i].properties[dataA[0][p]] || ""));
+					} else {
+						row.push(data.features[i].properties[dataA[0][p]] || "");
+					}
+				}
+				row.push(JSON.stringify(data.features[i].geometry));
+				dataA.push(row);
+			}
+		}
+		// finish the data table object 
+		this.__createDataTableObject(dataA, "json", opt);
+	}
+
+	/** 
+	 * __processGeoJsonData_expandProperty
+	 * reads a simple JSON table 
+	 * parses the data into the map data source
+	 * @param file filename
+	 * @param i filenumber
+	 * @type void
+	 */
+	Data.Feed.prototype.__processGeoJsonData_expandProperty = function (script, opt) {
+
+		if (typeof (script) == "string") {
+			try {
+				var data = JSON.parse(script);
+			} catch (e) {
+				this.__createDataTableObject([], "json", opt);
+			}
+		} else {
+			var data = script;
+		}
+		this.data = data;
+
+		var dataA = [];
+		var row = [];
+		var columns = [];
+
+		if (data && data.features && data.features.length) {
+
+			for (i = 0; i < data.features.length; i++) {
+				for (p in data.features[i].properties) {
+					if (typeof data.features[i].properties[p] === "string" || typeof data.features[i].properties[p] === "number") {
+						columns[p] = true;
+					} else {
+						for (pp in data.features[i].properties[p]) {
+							columns[p + "." + pp] = true;
+						}
+					}
+				}
+			}
+			for (p in columns) {
+				row.push(p);
+			}
+			row.push("geometry");
+			dataA.push(row);
+
+			for (var i = 0; i < data.features.length; i++) {
+				row = [];
+				for (p = 0; p < dataA[0].length - 1; p++) {
+					var xA = dataA[0][p].split(".");
+					if (xA.length >= 2) {
+						row.push(data.features[i].properties[xA[0]][xA[1]] || "");
 					} else {
 						row.push(data.features[i].properties[dataA[0][p]] || "");
 					}
@@ -2390,7 +2452,6 @@ $Log:data.js,v $
 		 * @return the extended table
 		 */
 		append: function (sourceTable) {
-			console.log("test");
 			if (this.table.fields.length != sourceTable.table.fields.length) {
 				return null;
 			}
