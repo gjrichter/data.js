@@ -128,7 +128,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.43",
+		version: "1.45",
 		errors: []
 	};
 
@@ -925,8 +925,6 @@ $Log:data.js,v $
 
 			});
 
-			console.log(dataA);
-
 			__this.__createDataTableObject(dataA, "kml", opt);
 
 		}
@@ -1243,10 +1241,6 @@ $Log:data.js,v $
 			var data = script;
 		}
 		this.data = data;
-
-		console.log("------ !!! ------");
-		console.log(data);
-		console.log("------ !!! ------");
 
 		var topoObject = null;
 
@@ -1650,7 +1644,7 @@ $Log:data.js,v $
 		 * select rows from a dbtable objects data by SQL query
 		 * @param {String} szSelection the selection query string<br>WHERE "<em>column name</em>" [operator] "<em>selection value</em>" 
 		 *<table class="w3-table-all notranslate">
- 		 * <tr>
+		 * <tr>
 		 *    <th style="width:20%">Operator</th>
 		 *    <th>Description</th>
 		 *  </tr>
@@ -1675,24 +1669,24 @@ $Log:data.js,v $
 		 *    <td>Greater than or equal</td>
 		 *  </tr>
 		 *  <tr>
- 		 *   <td>&lt;=</td>
- 		 *   <td>Less than or equal</td>
- 		 * </tr>
- 		 * <tr>
- 		 *   <td>BETWEEN</td>
- 		 *   <td>Between an inclusive range;<br> example: WHERE "<em>column</em>" BETWEEN "<em>value1</em>" AND "<em>value2</em>"</td>
- 		 * </tr>
- 		 * <tr>
- 		 *   <td>LIKE</td>
- 		 *   <td>Search for a pattern</td>
- 		 * </tr>
- 		 * <tr>
- 		 *   <td>NOT</td>
- 		 *   <td>Must not contain pattern</td>
- 		 * </tr>
+		 *   <td>&lt;=</td>
+		 *   <td>Less than or equal</td>
+		 * </tr>
+		 * <tr>
+		 *   <td>BETWEEN</td>
+		 *   <td>Between an inclusive range;<br> example: WHERE "<em>column</em>" BETWEEN "<em>value1</em>" AND "<em>value2</em>"</td>
+		 * </tr>
+		 * <tr>
+		 *   <td>LIKE</td>
+		 *   <td>Search for a pattern</td>
+		 * </tr>
+		 * <tr>
+		 *   <td>NOT</td>
+		 *   <td>Must not contain pattern</td>
+		 * </tr>
 		 *  <tr>
 		 *    <td>IN</td>
- 		 *   <td>To specify multiple possible values for a column;<br> example: WHERE "<em>column</em>" IN "<em>value1,value2,value3</em>"</td>
+		 *   <td>To specify multiple possible values for a column;<br> example: WHERE "<em>column</em>" IN "<em>value1,value2,value3</em>"</td>
 		 *  </tr>
 		 *</table>
 		 * @type Data.Table
@@ -1810,7 +1804,7 @@ $Log:data.js,v $
 						var result = true;
 						// get the value to test
 						this.__szValue = String(this.records[j][this.filterQueryA[i].nFilterFieldIndex]);
-						this.__szSelectionOp = this.filterQueryA[i].szSelectionOp;
+						this.__szSelectionOp = this.filterQueryA[i].szSelectionOp.toUpperCase();
 						this.__szSelectionValue = this.filterQueryA[i].szSelectionValue;
 						this.__szSelectionValue2 = this.filterQueryA[i].szSelectionValue2;
 						this.__szCombineOp = this.filterQueryA[i].szCombineOp;
@@ -1846,7 +1840,11 @@ $Log:data.js,v $
 							result = (nValue <= Number(this.__szSelectionValue));
 						} else
 						if (this.__szSelectionOp == "LIKE") {
-							result = eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
+							if (this.__szSelectionValue == "*"){
+								result = this.__szValue.length; 
+							}else{
+								result = eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
+							}
 						} else
 						if (this.__szSelectionOp == "NOT") {
 							result = !eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
@@ -2182,6 +2180,7 @@ $Log:data.js,v $
 			options.keep = __toArray(options.keep);
 			options.sum = __toArray(options.sum);
 			options.value = __toArray(options.value);
+			options.forced = __toArray(options.forced);
 
 			// make field indices
 
@@ -2224,6 +2223,15 @@ $Log:data.js,v $
 			var colA = [];
 			var data = this.records;
 
+			// GR 12/03/2023 preset columns with forced columns
+
+			if (options.forced) {
+				for (i in options.forced) {
+					console.log(options.forced[i]);
+					colA[String(options.forced[i])] = 0;
+				}
+			}
+
 			for (var row = 0; row < data.length; row++) {
 
 				var szRow = String(data[row][indexA[options.lead[0]]]);
@@ -2243,7 +2251,7 @@ $Log:data.js,v $
 				if (!szCol || szCol.length < 1) {
 					szCol = "undefined"
 				}
-				if (!colA[szCol]) {
+				if (typeof (colA[szCol]) == 'undefined') {
 					colA[szCol] = 0;
 				}
 				if (!rowA[szRow]) {
