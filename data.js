@@ -128,7 +128,7 @@ $Log:data.js,v $
 	 */
 
 	var Data = {
-		version: "1.45",
+		version: "1.46",
 		errors: []
 	};
 
@@ -592,8 +592,7 @@ $Log:data.js,v $
 	 * @type void
 	 */
 	Data.Feed.prototype.__processCSVData = function (csv, opt) {
-
-		_LOG("__processCSVData:");
+		_LOG("__processCSVData:" + opt.source + (opt.options ? (" -> " + opt.options.name) : ""));
 
 		var c1 = null;
 		var c2 = null;
@@ -604,6 +603,7 @@ $Log:data.js,v $
 		// GR 21.07.2016 if autodecet delimiter fails, try first ; and then ,   
 
 		if (typeof (Papa) == "undefined") {
+			_LOG("__processCSVData:load csv parser!");
 			__this = this;
 			$.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
 				.done(function (script, textStatus) {
@@ -619,7 +619,7 @@ $Log:data.js,v $
 
 		var newData = Papa.parse(csv, opt.parser).data;
 
-		_LOG("csv parser: done");
+		_LOG("csv parser: done " + opt.source + (opt.options ? (" -> " + opt.options.name) : ""));
 
 		if (typeof (newData[0]) == "undefined" ||
 			typeof (newData[1]) == "undefined") {
@@ -674,7 +674,7 @@ $Log:data.js,v $
 			return;
 		}
 
-		_LOG("__createDataTableObject:");
+		_LOG("__createDataTableObject: " + (opt.options ? (" -> " + opt.options.name) : ""));
 		// finish the data table object 
 		this.__createDataTableObject(newData, opt.type, opt);
 
@@ -1514,7 +1514,61 @@ $Log:data.js,v $
 			var idA = this.column(szLookup).values();
 			var valueA = this.column(szValue).values();
 			for (i in idA) {
-				lookupA[String(idA[i])] = valueA[i] || "-";
+				lookupA[String(idA[i])] = valueA[i];
+			}
+			return lookupA;
+		},
+
+		/**
+		 * get an associative array of the values of two columns like array[String(lookup column value)] = value
+		 * only for string values, creates aggregated string of multiple values 
+		 * @param {String} szValue the name of the value column
+		 * @param {String} szLookup the name of the lookup value column
+		 * @type array
+		 * @return {array} associative array for lookup
+		 * @example
+		 * id           nome
+		 * -------------------------------------------
+		 * 00000000000  ITALIA
+		 * 00000000000  PIEMONTE 1
+		 * 01100000000  PIEMONTE 1 - 01
+		 * 01100000000  01 TORINO - ZONA STATISTICA 16
+		 * 01110812620  TORINO - PIEMONTE 1 - 01 - 01
+		 * 01120000000  02 TORINO - ZONA STATISTICA 38
+		 * ...
+		 *
+		 * // create assoc.array with id ==> nome from camera_geopolitico_italia.csv (id == ELIGENDO_C_UID_CI)
+		 * var nomeA = camera_geopolitico_italia.lookupArray("nome","id");
+		 *
+		 * ['00000000000']="ITALIA, PIEMONTE 1";
+		 * ['01100000000']="PIEMONTE 1 - 01, 01 TORINO - ZONA STATISTICA 16";
+		 * ['01110812620']="TORINO - PIEMONTE 1 - 01 - 01";
+		 * ['01120000000']="02 TORINO - ZONA STATISTICA 38";
+		 * ...
+		 *
+		 */
+		lookupStringArray: function (szValue, szLookup) {
+
+			// GR 06.09.2021 new argument object {}
+			if (szValue && szValue.key) {
+				szLookup = szValue.key;
+				szValue = szValue.value;
+			}
+
+			var lookupA = [];
+			if (!this.column(szLookup)) {
+				alert("'" + szLookup + "' column not found!");
+			}
+			if (!this.column(szValue)) {
+				alert("'" + szValue + "' column not found!");
+			}
+
+			var idA = this.column(szLookup).values();
+			var valueA = this.column(szValue).values();
+			for (i in idA) {
+				if (valueA[i]) {
+					lookupA[String(idA[i])] = (lookupA[String(idA[i])] ? (lookupA[String(idA[i])] + ", " + valueA[i]) : valueA[i]);
+				}
 			}
 			return lookupA;
 		},
@@ -1593,8 +1647,24 @@ $Log:data.js,v $
 
 			// add new column values
 			// ---------------------
-			for (var j in this.records) {
-				this.records[j].push((column != null) ? callback(this.records[j][column]) : callback(this.records[j]));
+			if (callback && (typeof (callback) == "function")) {
+				for (var j in this.records) {
+					this.records[j].push((column != null) ? callback(this.records[j][column]) : callback(this.records[j]));
+				}
+			} else
+			if (callback && (typeof (callback) == "object")) {
+				for (var j in this.records) {
+					this.records[j].push(callback[j] || 0);
+				}
+			} else
+			if (options.values && (typeof (options.values) == "object")) {
+				for (var j in this.records) {
+					this.records[j].push(options.values[j] || 0);
+				}
+			} else {
+				for (var j in this.records) {
+					this.records[j].push(0);
+				}
 			}
 
 			return this;
@@ -1638,6 +1708,32 @@ $Log:data.js,v $
 			this.table.records++;
 
 			return this;
+		},
+
+		/**
+		 * filter rows from a dbtable objects data by callback
+		 * @param {function} the user defined filter function, must return 0 or 1 
+		 * @type Data.Table
+		 * @return {Table}
+		 * @example
+		 *    mydata.filter(
+		 *        function(row){
+		 *            return( (row[0] == 'filtervalue') ? 1 : 0 );
+		 *     });
+		 */
+		filter: function (callback) {
+
+			this.selection = new Data.Table;
+
+			for (var j in this.records) {
+				if (callback && callback(this.records[j])) {
+					this.selection.records.push(this.records[j]);
+					this.selection.table.records++;
+				}
+			}
+			this.selection.fields = this.fields.slice();
+			this.selection.table.fields = this.table.fields;
+			return this.selection;
 		},
 
 		/**
@@ -1707,7 +1803,7 @@ $Log:data.js,v $
 
 					// tokenize
 					// ---------
-					var szTokenA = szSelection.split('WHERE ')[1].split(' ');
+					var szTokenA = szSelection.split('WHERE')[1].trim().split(' ');
 
 					// test for quotes and join the included text parts
 					for (var ii = 0; ii < szTokenA.length; ii++) {
@@ -1752,7 +1848,8 @@ $Log:data.js,v $
 								if (this.fields[ii].id == filterObj.szSelectionField) {
 									filterObj.nFilterFieldIndex = ii;
 								}
-								if (this.fields[ii].id == filterObj.szSelectionValue) {
+								// GR 26.12.2019 filter value may be column name (defined by $column name$)
+								if (("$" + this.fields[ii].id + "$") == filterObj.szSelectionValue) {
 									filterObj.nFilterValueIndex = ii;
 								}
 							}
@@ -1840,9 +1937,9 @@ $Log:data.js,v $
 							result = (nValue <= Number(this.__szSelectionValue));
 						} else
 						if (this.__szSelectionOp == "LIKE") {
-							if (this.__szSelectionValue == "*"){
-								result = this.__szValue.length; 
-							}else{
+							if (this.__szSelectionValue == "*") {
+								result = this.__szValue.length;
+							} else {
 								result = eval("this.__szValue.match(/" + this.__szSelectionValue.replace(/\//gi, '\\/') + "/i)");
 							}
 						} else
@@ -2910,7 +3007,6 @@ $Log:data.js,v $
 			for (var i in this.souceQueryA) {
 				if (this.souceQueryA[i].url && !this.souceQueryA[i].result) {
 					this.getData(this.souceQueryA[i]);
-					this.onNotify(i);
 					return this;
 				}
 			}
@@ -2985,12 +3081,15 @@ $Log:data.js,v $
 	 * @type void
 	 */
 	Data.Broker.prototype.getData = function (query) {
+		this.onNotify(query);
 		query.feed = Data.feed({
 			"source": query.url,
 			"type": query.type,
-			"options": query.next.options
+			"options": query.next.options,
+			parent: this
 		}).load(function (mydata) {
 			query.data = mydata;
+			this.parent.onNotify(query);
 			query.result = "success";
 			query.next.realize();
 			query.data.raw = query.feed.data;
