@@ -1496,9 +1496,12 @@ $Log:data.js,v $
 		 *
 		 */
 		lookupArray: function (szValue, szLookup) {
+			
+			var calc = "overwrite";
 
 			// GR 06.09.2021 new argument object {}
 			if (szValue && szValue.key) {
+				calc = szValue.calc || calc;
 				szLookup = szValue.key;
 				szValue = szValue.value;
 			}
@@ -1513,9 +1516,20 @@ $Log:data.js,v $
 
 			var idA = this.column(szLookup).values();
 			var valueA = this.column(szValue).values();
-			for (i in idA) {
-				lookupA[String(idA[i])] = valueA[i];
-			}
+			if ( calc == "sum") {
+				for (i in idA) {
+					lookupA[String(idA[i])] = (lookupA[String(idA[i])]||0) + valueA[i];
+				}
+			} else
+			if ( calc == "max") {
+				for (i in idA) {
+					lookupA[String(idA[i])] = Math.max(lookupA[String(idA[i])]||0,valueA[i]);
+				}
+			} else {
+				for (i in idA) {
+					lookupA[String(idA[i])] = valueA[i];
+				}
+			} 
 			return lookupA;
 		},
 
@@ -1807,12 +1821,24 @@ $Log:data.js,v $
 
 					// test for quotes and join the included text parts
 					for (var ii = 0; ii < szTokenA.length; ii++) {
-						if ((szTokenA[ii][0] == '"') && (szTokenA[ii][szTokenA[ii].length - 1] != '"')) {
-							do {
-								szTokenA[ii] = szTokenA[ii] + " " + szTokenA[ii + 1];
-								szTokenA.splice(ii + 1, 1);
+						if (szTokenA[ii].length) {
+							if ((szTokenA[ii][0] == '"') && (szTokenA[ii][szTokenA[ii].length - 1] != '"')) {
+								do {
+									szTokenA[ii] = szTokenA[ii] + " " + szTokenA[ii + 1];
+									szTokenA.splice(ii + 1, 1);
+								}
+								while (szTokenA[ii][szTokenA[ii].length - 1] != '"');
 							}
-							while (szTokenA[ii][szTokenA[ii].length - 1] != '"');
+							if ((szTokenA[ii][0] == '(') && (szTokenA[ii][szTokenA[ii].length - 1] != ')')) {
+								do {
+									szTokenA[ii] = szTokenA[ii] + " " + szTokenA[ii + 1];
+									szTokenA.splice(ii + 1, 1);
+								}
+								while (szTokenA[ii][szTokenA[ii].length - 1] != ')');
+							}
+						} else {
+							szTokenA.splice(ii, 1);
+							ii--;
 						}
 					}
 					this.filterQueryA = [];
@@ -2338,11 +2364,15 @@ $Log:data.js,v $
 
 				var szCol = String(data[row][indexA[options.cols[0]]]);
 
-				var nValue = 1;
-				if (options.value && options.value.length) {
-					nValue = 0;
-					for (var k = 0; k < options.value.length; k++) {
-						nValue += options.value[k] ? __scanValue(data[row][indexA[options.value[k]]]) : 1;
+				if (options.calc == "string") {
+					var nValue = data[row][indexA[options.value[0]]];
+				}else{
+					var nValue = 1;
+					if (options.value && options.value.length) {
+						nValue = 0;
+						for (var k = 0; k < options.value.length; k++) {
+							nValue += options.value[k] ? __scanValue(data[row][indexA[options.value[k]]]) : 1;
+						}
 					}
 				}
 				if (!szCol || szCol.length < 1) {
@@ -2379,6 +2409,8 @@ $Log:data.js,v $
 					rowA[szRow][szCol] = nValue;
 					rowA[szRow][szCol + "count"] = 1;
 				} else {
+					if (options.calc == "string") {
+					}
 					if (options.calc == "max") {
 						rowA[szRow][szCol] = Math.max(nValue, rowA[szRow][szCol]);
 					} else {
