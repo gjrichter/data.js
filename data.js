@@ -68,7 +68,7 @@ $Log:data.js,v $
  * });
  *
  * @author Guenter Richter guenter.richter@medienobjekte.de
- * @version 1.34 
+ * @version 1.47 
  * @copyright CC BY SA
  * @license MIT
  */
@@ -210,9 +210,11 @@ $Log:data.js,v $
                 this.feed.__processCSVData(this.options.source, this.options);
             } else
             if ((this.options.type == "rss") || (this.options.type == "RSS")) {
+                this.options.format = "xml";
                 this.feed.__processRSSData(this.options.source, this.options);
             } else
             if ((this.options.type == "kml") || (this.options.type == "KML")) {
+                this.options.format = "xml";
                 this.feed.__processKMLData(this.options.source, this.options);
             } else
             if ((this.options.type == "json") || (this.options.type == "JSON") || (this.options.type == "Json")) {
@@ -223,8 +225,11 @@ $Log:data.js,v $
             } else
             if ((this.options.type == "topojson") || (this.options.type == "TOPOJSON") || (this.options.type == "TopoJson")) {
                 this.feed.__processTopoJsonData(this.options.source, this.options);
+            } else
+            if ((this.options.type == "jsonDB") || (this.options.type == "JSONDB") || (this.options.type == "JsonDB") ||
+                (this.options.type == "jsondb")) {
+                this.feed.__processJsonDBData(this.options.source, this.options);
             }
-
             return this;
         },
         /**
@@ -250,6 +255,8 @@ $Log:data.js,v $
      *								   <tr><td><b>"csv"</b></td><td>the source is 'plain text' formatted as Comma Separated Values<br>delimiter supported: , and ;</td></tr>
      *								   <tr><td><b>"json"</b></td><td>the source is JSON (Javascript Object Notation)</td></tr>
      *								   <tr><td><b>"geojson"</b></td><td>the source is a JSON object formatted in <a href="https://geojson.org/" target="_blank">GeoJson</a></td></tr>
+     *								   <tr><td><b>"topojson"</b></td><td>the source is a JSON object formatted in <a href="https://github.com/topojson/topojson" target="_blank">TopoJson</a></td></tr>
+     *								   <tr><td><b>"jsonDB"</b></td><td>the source is a jsonDB table object</td></tr>
      *								   <tr><td><b>"rss"</b></td><td>the source is an xml rss feed</td></tr>
      *								   </table> 
      * @type Data.Object
@@ -537,9 +544,13 @@ $Log:data.js,v $
         // ------------------
         this.dbtable = new Data.Table();
 
-        var name = opt.source.split(/\//).pop();
-        name = name.split(/\./)[0];
-        var loadedTable = eval(name);
+        if (typeof (script) == "string") {
+            var name = opt.source.split(/\//).pop();
+            name = name.split(/\./)[0];
+            var loadedTable = eval(name);
+        } else {
+            var loadedTable = opt.source;
+        }
 
         this.dbtable.table = loadedTable.table;
         this.dbtable.fields = loadedTable.fields;
@@ -599,7 +610,7 @@ $Log:data.js,v $
      * @type void
      */
     Data.Feed.prototype.__processCSVData = function (csv, opt) {
-        _LOG("__processCSVData:" + opt.source + (opt.options ? (" -> " + opt.options.name) : ""));
+        //_LOG("__processCSVData:" + opt.source + (opt.options ? (" -> " + opt.options.name) : ""));
 
         var c1 = null;
         var c2 = null;
@@ -626,7 +637,7 @@ $Log:data.js,v $
 
         var newData = Papa.parse(csv, opt.parser).data;
 
-        _LOG("csv parser: done " + opt.source + (opt.options ? (" -> " + opt.options.name) : ""));
+        //_LOG("csv parser: done " + opt.source + (opt.options ? (" -> " + opt.options.name) : ""));
 
         if (typeof (newData[0]) == "undefined" ||
             typeof (newData[1]) == "undefined") {
@@ -1014,6 +1025,46 @@ $Log:data.js,v $
                 data = data.data;
             }
 
+           // if initial object is not an array, search the first one 
+           if( typeof(data) !== "array" ) {
+               
+                function __findAllArraysInJson(jsonObject) {
+                    const arrays = [];
+                    function __recurse(obj) {
+                    // Check if the current object is an array
+                        if (Array.isArray(obj)) {
+                            arrays.push(obj);
+                        } else if (typeof obj === 'object' && obj !== null) {
+                            // If it's an object, iterate over its keys
+                            for (const key in obj) {
+                                if (obj.hasOwnProperty(key)) {
+                                    __recurse(obj[key]); // Recur for each key
+                                }
+                            }
+                        }
+                    }
+                    __recurse(jsonObject);
+                    return arrays;
+                } 
+               
+                let arrayA = __findAllArraysInJson(data);
+                data = arrayA[0];
+            }
+            
+            // was not able to parse json
+            // set source as result
+            
+            if (!data){
+                let dataA = [];
+                dataA.push(["unknown type"]);
+                let scriptA = script.split('\n');
+                for (var i in scriptA){
+                    dataA.push([scriptA[i]]);
+                }
+                this.__createDataTableObject(dataA, "json", opt); 
+                return;
+            }
+            
             for (var a in data[0]) {
                 if ((typeof (data[0][a]) == "object") && (data[0][a] != null)) {
                     for (var b in data[0][a]) {
@@ -1292,6 +1343,8 @@ $Log:data.js,v $
 
             if ((typeof (opt) != "undefined") && opt.success) {
                 opt.success(this.dbtable);
+            } else {
+                _LOG("callback to call on succes is 'undefined'!");
             }
 
             return;
@@ -2575,12 +2628,27 @@ $Log:data.js,v $
          */
         sort: function (szColumn, szFlag) {
             var valuesA = this.column(szColumn).values();
+            var number = 0;
+            for (var i = 0; i < Math.min(valuesA.length,10); i++) {
+                 if (!isNaN(parseFloat(valuesA[i].replace(",",".")))){
+                    number++;
+                }
+            }
             var sortA = [];
-            for (var i = 0; i < valuesA.length; i++) {
-                sortA.push({
-                    index: i,
-                    value: valuesA[i]
-                });
+            if (number){
+                for (var i = 0; i < valuesA.length; i++) {
+                    sortA.push({
+                        index: i,
+                        value: Number(valuesA[i].replace(",","."))
+                    });
+                }
+            }else{
+                 for (var i = 0; i < valuesA.length; i++) {
+                    sortA.push({
+                        index: i,
+                        value: valuesA[i]
+                    });
+                }
             }
             if (szFlag && szFlag == "DOWN") {
                 sortA.sort(function (a, b) {
