@@ -2630,7 +2630,7 @@ $Log:data.js,v $
             var valuesA = this.column(szColumn).values();
             var number = 0;
             for (var i = 0; i < Math.min(valuesA.length,10); i++) {
-                 if (!isNaN(parseFloat(valuesA[i].replace(",",".")))){
+                 if (!isNaN(parseFloat(String(valuesA[i]).replace(",",".")))){
                     number++;
                 }
             }
@@ -2639,7 +2639,7 @@ $Log:data.js,v $
                 for (var i = 0; i < valuesA.length; i++) {
                     sortA.push({
                         index: i,
-                        value: Number(valuesA[i].replace(",","."))
+                        value: Number(String(valuesA[i]).replace(",","."))
                     });
                 }
             }else{
