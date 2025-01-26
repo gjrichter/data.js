@@ -128,7 +128,7 @@ $Log:data.js,v $
      */
 
     var Data = {
-        version: "1.47",
+        version: "1.48",
         errors: []
     };
 
@@ -462,7 +462,7 @@ $Log:data.js,v $
         JSONstat(szUrl,
             function () {
 
-                var dataA = new Array();
+                var dataA = [];
 
                 // for now we take dimension 0 and 1
                 // 0 for the y axis = first column
@@ -480,7 +480,7 @@ $Log:data.js,v $
                 // data rows
                 //
                 for (var i = 0; i < this.Dataset(0).Dimension(0).length; i++) {
-                    var row = new Array();
+                    row = [];
                     row.push(this.Dataset(0).Dimension(0).Category(this.Dataset(0).Dimension(0).id[i]).label);
                     for (var ii = 0; ii < this.Dataset(0).Dimension(1).length; ii++) {
                         row.push(this.Dataset(0).Data([i, ii]).value);
@@ -498,7 +498,7 @@ $Log:data.js,v $
                 __this.__createDataTableObject(dataA, opt.type, opt);
 
             });
-    }
+    };
 
     // ---------------------------------
     // J s o n D B 
@@ -540,16 +540,16 @@ $Log:data.js,v $
 
         _LOG("__processJsonDBData:");
 
-        // cteate data object
+        // create data object
         // ------------------
         this.dbtable = new Data.Table();
-
+        var loadedTable = null;
         if (typeof (script) == "string") {
             var name = opt.source.split(/\//).pop();
             name = name.split(/\./)[0];
-            var loadedTable = eval(name);
+            loadedTable = eval(name);
         } else {
-            var loadedTable = opt.source;
+            loadedTable = opt.source;
         }
 
         this.dbtable.table = loadedTable.table;
@@ -909,7 +909,7 @@ $Log:data.js,v $
             var channelLng = null;
 
             var version = $(data).find('kml').attr("xmlns");
-            var document = $(data).find('Document')
+            var document = $(data).find('Document');
 
             var dataA = [];
             var childNamesA = null;
@@ -972,7 +972,7 @@ $Log:data.js,v $
             }
         });
 
-    }
+    };
     /** 
      * __processJsonData 
      * reads a simple JSON table 
@@ -983,14 +983,16 @@ $Log:data.js,v $
      */
     Data.Feed.prototype.__processJsonData = function (script, opt) {
 
+        var data = null;
+        
         if (typeof (script) == "string") {
             try {
-                var data = JSON.parse(script);
+                data = JSON.parse(script);
             } catch (e) {
                 this.__createDataTableObject([], "json", opt);
             }
         } else {
-            var data = script;
+            data = script;
         }
         this.data = data;
 
@@ -1010,7 +1012,7 @@ $Log:data.js,v $
             dataA.push(row);
 
             for (var i = 0; i < rows.length; i++) {
-                var row = [];
+                row = [];
                 for (var ii in rows[0]) {
                     row.push(rows[i][ii]);
                 }
@@ -1026,9 +1028,9 @@ $Log:data.js,v $
             }
 
            // if initial object is not an array, search the first one 
-           if( typeof(data) !== "array" ) {
+           if( !Array.isArray(data) ) {
                
-                function __findAllArraysInJson(jsonObject) {
+                __findAllArraysInJson = function (jsonObject){
                     const arrays = [];
                     function __recurse(obj) {
                     // Check if the current object is an array
@@ -1045,7 +1047,7 @@ $Log:data.js,v $
                     }
                     __recurse(jsonObject);
                     return arrays;
-                } 
+                }; 
                
                 let arrayA = __findAllArraysInJson(data);
                 data = arrayA[0];
@@ -1084,7 +1086,7 @@ $Log:data.js,v $
             dataA.push(row);
 
             for (var i = 0; i < data.length; i++) {
-                var row = [];
+                row = [];
                 for (a in data[0]) {
                     if (data[i][a] === null) {
                         row.push('null');
@@ -1109,7 +1111,7 @@ $Log:data.js,v $
 
         // finish the data table object 
         this.__createDataTableObject(dataA, "json", opt);
-    }
+    };
 
 
     // ---------------------------------
@@ -1136,7 +1138,7 @@ $Log:data.js,v $
             }
         });
 
-    }
+    };
     /** 
      * __processGeoJsonData 
      * reads a simple JSON table 
@@ -1147,14 +1149,16 @@ $Log:data.js,v $
      */
     Data.Feed.prototype.__processGeoJsonData = function (script, opt) {
 
+        var data = null;
+        
         if (typeof (script) == "string") {
             try {
-                var data = JSON.parse(script);
+                data = JSON.parse(script);
             } catch (e) {
                 this.__createDataTableObject([], "json", opt);
             }
         } else {
-            var data = script;
+            data = script;
         }
         this.data = data;
 
@@ -1165,11 +1169,11 @@ $Log:data.js,v $
         if (data && data.features && data.features.length) {
 
             for (i = 0; i < data.features.length; i++) {
-                for (p in data.features[i].properties) {
+                for (var p in data.features[i].properties) {
                     columns[p] = true;
                 }
             }
-            for (p in columns) {
+            for (var p in columns) {
                 row.push(p);
             }
             row.push("geometry");
@@ -1190,7 +1194,7 @@ $Log:data.js,v $
         }
         // finish the data table object 
         this.__createDataTableObject(dataA, "json", opt);
-    }
+    };
 
     /** 
      * __processGeoJsonData_expandProperty
@@ -1202,14 +1206,16 @@ $Log:data.js,v $
      */
     Data.Feed.prototype.__processGeoJsonData_expandProperty = function (script, opt) {
 
+        var data = null;
+        
         if (typeof (script) == "string") {
             try {
-                var data = JSON.parse(script);
+                data = JSON.parse(script);
             } catch (e) {
                 this.__createDataTableObject([], "json", opt);
             }
         } else {
-            var data = script;
+            data = script;
         }
         this.data = data;
 
@@ -1220,17 +1226,17 @@ $Log:data.js,v $
         if (data && data.features && data.features.length) {
 
             for (i = 0; i < data.features.length; i++) {
-                for (p in data.features[i].properties) {
+                for (var p in data.features[i].properties) {
                     if (typeof data.features[i].properties[p] === "string" || typeof data.features[i].properties[p] === "number") {
                         columns[p] = true;
                     } else {
-                        for (pp in data.features[i].properties[p]) {
+                        for (var pp in data.features[i].properties[p]) {
                             columns[p + "." + pp] = true;
                         }
                     }
                 }
             }
-            for (p in columns) {
+            for (var p in columns) {
                 row.push(p);
             }
             row.push("geometry");
@@ -1252,7 +1258,7 @@ $Log:data.js,v $
         }
         // finish the data table object 
         this.__createDataTableObject(dataA, "json", opt);
-    }
+    };
 
     // ---------------------------------
     // T O P O - J S O N  
@@ -1278,7 +1284,7 @@ $Log:data.js,v $
             }
         });
 
-    }
+    };
     /** 
      * __processTopoJsonData 
      * parses topojson data into the map data source
@@ -1292,15 +1298,15 @@ $Log:data.js,v $
             _alert("'" + opt.type + "' parser not loaded !");
             return;
         }
-
+        var data = null;
         if (typeof (script) == "string") {
             try {
-                var data = JSON.parse(script);
+                data = JSON.parse(script);
             } catch (e) {
                 this.__createDataTableObject([], "json", opt);
             }
         } else {
-            var data = script;
+            data = script;
         }
         this.data = data;
 
@@ -1311,7 +1317,7 @@ $Log:data.js,v $
             topoObject = topojson.feature(data, data.objects[opt.options.name]);
         } else
             // or take the first object
-            for (i in data.objects) {
+            for (var i in data.objects) {
                 topoObject = topojson.feature(data, data.objects[i]);
                 break;
             }
@@ -1321,7 +1327,7 @@ $Log:data.js,v $
         }
 
         this.__processGeoJsonData(topoObject, opt);
-    }
+    };
 
 
 
@@ -1349,7 +1355,7 @@ $Log:data.js,v $
 
             return;
         }
-    }
+    };
 
     /**
      * Create a new Data.Table instance.  
@@ -1581,16 +1587,16 @@ $Log:data.js,v $
             var idA = this.column(szLookup).values();
             var valueA = this.column(szValue).values();
             if (calc == "sum") {
-                for (i in idA) {
+                for (var i in idA) {
                     lookupA[String(idA[i])] = (lookupA[String(idA[i])] || 0) + valueA[i];
                 }
             } else
             if (calc == "max") {
-                for (i in idA) {
+                for (var i in idA) {
                     lookupA[String(idA[i])] = Math.max(lookupA[String(idA[i])] || 0, valueA[i]);
                 }
             } else {
-                for (i in idA) {
+                for (var i in idA) {
                     lookupA[String(idA[i])] = valueA[i];
                 }
             }
@@ -1643,7 +1649,7 @@ $Log:data.js,v $
 
             var idA = this.column(szLookup).values();
             var valueA = this.column(szValue).values();
-            for (i in idA) {
+            for (var i in idA) {
                 //				if (valueA[i]) {
                 lookupA[String(idA[i])] = (lookupA[String(idA[i])] ? (lookupA[String(idA[i])] + ", " + valueA[i]) : valueA[i]);
                 //}
@@ -1801,7 +1807,7 @@ $Log:data.js,v $
          */
         filter: function (callback) {
 
-            this.selection = new Data.Table;
+            this.selection = new Data.Table();
 
             for (var j in this.records) {
                 if (callback && callback(this.records[j])) {
@@ -1971,7 +1977,7 @@ $Log:data.js,v $
 
                 }
 
-                this.selection = new Data.Table;
+                this.selection = new Data.Table();
 
                 for (var i in this.filterQueryA) {
                     if (typeof this.filterQueryA[i].nFilterFieldIndex === "undefined") {
@@ -2124,12 +2130,12 @@ $Log:data.js,v $
                 }
             }
 
-            this.aggregation = new Data.Table;
+            this.aggregation = new Data.Table();
 
             xRecords = [];
             xCount = [];
             for (var j in this.records) {
-                xField = ""
+                xField = "";
                 for (var i = 0; i < nAggregateIndexA.length; i++) {
                     xField += this.records[j][nAggregateIndexA[i]];
                 }
@@ -2228,7 +2234,7 @@ $Log:data.js,v $
                 var szTest = String(this.records[j][uniqueIndex]);
                 if (uniqueA[szTest] != null) {
                     var k = uniqueA[szTest];
-                    for (v in this.records[j]) {
+                    for (var v in this.records[j]) {
                         if (!keepIndexA[v]) {
                             if (!isNaN(this.records[j][v])) {
                                 if (option && option.calc == "max") {
@@ -2249,8 +2255,14 @@ $Log:data.js,v $
                     uniqueA[szTest] = __newRecords.length - 1;
                 }
             }
-            this.records = __newRecords.slice();
-            return this;
+            
+            this.__condense = new Data.Table();
+            this.__condense.fields = this.fields;
+            this.__condense.table.fields = this.fields;
+            this.__condense.records = __newRecords.slice();
+            this.__condense.table.records = this.__condense.records.length;
+
+            return this.__condense;
         },
 
         /**
@@ -2272,14 +2284,14 @@ $Log:data.js,v $
 
             var sourceA = options.source;
             var iA = [];
-            for (i in sourceA) {
+            for (var i in sourceA) {
                 iA[i] = this.column(sourceA[i]).index;
             }
             this.addColumn({
                 destination: options.destination
             }, function (row) {
                 var value = 0;
-                for (i in iA) {
+                for (var i in iA) {
                     value += Number(row[iA[i]]);
                 }
                 return value;
@@ -2428,10 +2440,11 @@ $Log:data.js,v $
 
                 var szCol = String(data[row][indexA[options.cols[0]]]);
 
+                var nValue = null;
                 if (options.calc == "string") {
-                    var nValue = data[row][indexA[options.value[0]]];
+                    nValue = data[row][indexA[options.value[0]]];
                 } else {
-                    var nValue = 1;
+                    nValue = 1;
                     if (options.value && options.value.length) {
                         nValue = 0;
                         for (var k = 0; k < options.value.length; k++) {
@@ -2440,7 +2453,7 @@ $Log:data.js,v $
                     }
                 }
                 if (!szCol || szCol.length < 1) {
-                    szCol = "undefined"
+                    szCol = "undefined";
                 }
                 if (typeof (colA[szCol]) == 'undefined') {
                     colA[szCol] = 0;
@@ -2468,7 +2481,7 @@ $Log:data.js,v $
                     }
                 }
 
-                rowA[szRow]["Total"] += nValue;
+                rowA[szRow].Total += nValue;
 
                 if (!rowA[szRow][szCol]) {
                     rowA[szRow][szCol] = nValue;
@@ -2484,7 +2497,7 @@ $Log:data.js,v $
                 }
             }
 
-            this.__pivot = new Data.Table;
+            this.__pivot = new Data.Table();
             var pivotTable = this.__pivot.records;
 
             // make first row (table.fields) with column names
@@ -2525,7 +2538,7 @@ $Log:data.js,v $
             for (var a in rowA) {
 
                 // collect values per place
-                var valueA = new Array();
+                var valueA = [];
 
                 // lead
                 var leadA = a.split("|");
@@ -2552,7 +2565,7 @@ $Log:data.js,v $
                 }
 
                 // totale
-                valueA.push(rowA[a]["Total"]);
+                valueA.push(rowA[a].Total);
 
                 // record complete
                 this.__pivot.records.push(valueA);
@@ -2589,7 +2602,7 @@ $Log:data.js,v $
          */
         subtable: function (options) {
 
-            this.__subt = new Data.Table;
+            this.__subt = new Data.Table();
 
             if (options.fields) {
                 options.columns = [];
@@ -2652,11 +2665,11 @@ $Log:data.js,v $
             }
             if (szFlag && szFlag == "DOWN") {
                 sortA.sort(function (a, b) {
-                    return ((a.value > b.value) ? -1 : 1)
+                    return ((a.value > b.value) ? -1 : 1);
                 });
             } else {
                 sortA.sort(function (a, b) {
-                    return ((a.value < b.value) ? -1 : 1)
+                    return ((a.value < b.value) ? -1 : 1);
                 });
             }
             var records = [];
@@ -2668,8 +2681,9 @@ $Log:data.js,v $
         },
 
         /**
-         * appends the rows of a data table to the actual tableby values of a given column
-         * @param {Data.Table} the source of the rows to append
+         * appends the rows of a data table to the actual table<br>
+         * ! <b>important</b>: the structure of both tables must be identical, i.e. same column count and names
+         * @param {Data.Table} sourceTable table the source of the rows to append
          * @type Data.Table
          * @return the extended table
          */
@@ -2722,11 +2736,12 @@ $Log:data.js,v $
 
     __scanValue = function (nValue) {
         // strips blanks inside numbers (e.g. 1 234 456 --> 1234456)
+        var number = null;
         if (String(nValue).match(/,/)) {
-            var number = parseFloat(String(nValue).replace(/\./gi, "").replace(/,/gi, "."));
+            number = parseFloat(String(nValue).replace(/\./gi, "").replace(/,/gi, "."));
             return isNaN(number) ? 0 : number;
         } else {
-            var number = parseFloat(String(nValue).replace(/ /gi, ""));
+            number = parseFloat(String(nValue).replace(/ /gi, ""));
             return isNaN(number) ? 0 : number;
         }
     };
@@ -3336,16 +3351,16 @@ $Log:data.js,v $
 
             var indexAA = [];
 
-            for (i in this.sourceA) {
+            for (var i in this.sourceA) {
 
                 var source = this.sourceA[i];
 
-                source.opt.columns = source.opt.columns || source.data.columnNames || source.data.columnNames();
+                source.opt.columns = source.opt.columns || source.data.columnNames();
                 source.opt.label = source.opt.label || [];
 
                 source.opt.columns = __toArray(source.opt.columns);
                 source.opt.label = __toArray(source.opt.label);
-
+                
                 if (!this.sourceA[i].data) {
                     _alert("DataMerger: source '" + i + "' not found");
                 }
@@ -3359,13 +3374,13 @@ $Log:data.js,v $
                 }
 
                 var index = [];
-                for (ii in this.sourceA[i].data[0]) {
+                for (var ii in this.sourceA[i].data[0]) {
 
                     if (this.sourceA[i].data[0][ii] == this.sourceA[i].opt.lookup) {
                         index[this.sourceA[i].opt.lookup] = ii;
                     }
 
-                    for (iii in this.sourceA[i].opt.columns) {
+                    for (var iii in this.sourceA[i].opt.columns) {
                         if (!this.sourceA[i].opt.label[iii]) {
                             this.sourceA[i].opt.label[iii] = this.sourceA[i].opt.columns[iii] + "." + (Number(i) + 1) + "";
                         }
@@ -3375,7 +3390,7 @@ $Log:data.js,v $
                     }
                 }
                 // check completeness
-                for (iii in this.sourceA[i].opt.columns) {
+                for (var iii in this.sourceA[i].opt.columns) {
                     if (!index[this.sourceA[i].opt.label[iii]]) {
                         _LOG("DataMerger: '" + this.sourceA[i].opt.label[iii] + "' not found");
                     }
@@ -3384,8 +3399,8 @@ $Log:data.js,v $
             }
 
             var labelA = [];
-            for (i in this.sourceA) {
-                for (ii in this.sourceA[i].opt.label) {
+            for (var i in this.sourceA) {
+                for (var ii in this.sourceA[i].opt.label) {
                     labelA.push(this.sourceA[i].opt.label[ii]);
                 }
             }
@@ -3398,9 +3413,9 @@ $Log:data.js,v $
             }
 
             var outColumnsLookupA = [];
-            for (i in this.outColumnsA) {
-                for (ii in indexAA) {
-                    for (iii in indexAA[ii]) {
+            for (var i in this.outColumnsA) {
+                for (var ii in indexAA) {
+                    for (var iii in indexAA[ii]) {
                         if (iii == this.outColumnsA[i]) {
                             outColumnsLookupA[iii] = {
                                 input: ii,
@@ -3414,21 +3429,21 @@ $Log:data.js,v $
             for (i in this.outColumnsA) {
                 if (!outColumnsLookupA[this.outColumnsA[i]]) {
 
-                    for (ii in this.sourceA[0].data[0]) {
+                    for (var ii in this.sourceA[0].data[0]) {
                         if (this.sourceA[0].data[0][ii] == this.outColumnsA[i]) {
                             outColumnsLookupA[this.outColumnsA[i]] = {
                                 input: 0,
                                 index: ii
-                            }
+                            };
                         }
                     }
                 }
             }
 
             this.namedSourceA = [];
-            for (i = 1; i < this.sourceA.length; i++) {
+            for (var i = 1; i < this.sourceA.length; i++) {
                 this.namedSourceA[i] = [];
-                for (ii = 1; ii < this.sourceA[i].data.length; ii++) {
+                for (var ii = 1; ii < this.sourceA[i].data.length; ii++) {
                     this.namedSourceA[i][String(this.sourceA[i].data[ii][indexAA[i][this.sourceA[i].opt.lookup]])] = this.sourceA[i].data[ii];
                 }
             }
@@ -3441,7 +3456,7 @@ $Log:data.js,v $
 
                 var row = [];
 
-                for (ii in this.outColumnsA) {
+                for (var ii in this.outColumnsA) {
                     var ll = outColumnsLookupA[this.outColumnsA[ii]];
                     if (ll) {
                         if (ll.input == 0) {
