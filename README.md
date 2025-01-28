@@ -6,6 +6,8 @@ This library provides methods for operating on two dimensional tables.
 Reads open formats like csv and json from an URL, or import existent json objects into the Data Object .
 The Data object provides several methods like select or pivot to explore and handle the table data.
 
+To see the **documentation** click [here](https://gjrichter.github.io/data.js/docs/index.html) .
+
 To see a **demo** click [here](https://gjrichter.github.io/data.js/demo/html/) .
 
 ### usage sample
