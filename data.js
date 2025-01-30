@@ -2522,6 +2522,7 @@ $Log:data.js,v $
                 });
             }
             // cols
+            if (options.cols && options.cols.length)
             for (var a in colA) {
                 this.__pivot.fields.push({
                     id: a
@@ -2542,6 +2543,7 @@ $Log:data.js,v $
 
                 // lead
                 var leadA = a.split("|");
+                if (options.lead && options.lead.length)
                 for (var k = 0; k < leadA.length; k++) {
                     valueA.push(leadA[k]);
                 }
@@ -2556,6 +2558,7 @@ $Log:data.js,v $
                 }
 
                 // cols
+                if (options.cols && options.cols.length)
                 for (var t in colA) {
                     if (options.calc == "mean") {
                         valueA.push((rowA[a][t] || 0) / (rowA[a][t + "count"] || 1));
