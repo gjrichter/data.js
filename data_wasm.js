@@ -2146,7 +2146,7 @@ $Log:data.js,v $
         
         // Load Apache Arrow first as a global script (local file)
         const arrowScript = document.createElement('script');
-        arrowScript.src = 'https://raw.githubusercontent.com/gjrichter/data.js/refs/heads/master/libs/apache-arrow/Arrow.es2015.min.js';
+        arrowScript.src = 'https://cdn.jsdelivr.net/gh/gjrichter/data.js@latest/libs/apache-arrow/Arrow.es2015.min.js';
         arrowScript.onload = function() {
             console.log("Apache Arrow loaded globally from local file");
             
