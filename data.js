@@ -68,7 +68,7 @@ $Log:data.js,v $
  * });
  *
  * @author Guenter Richter guenter.richter@medienobjekte.de
- * @version 1.57 
+ * @version 1.58 
  * @copyright CC BY SA
  * @license MIT
  */
@@ -127,7 +127,7 @@ $Log:data.js,v $
      */
 
     var Data = {
-        version: "1.57",
+        version: "1.58",
         errors: [],
         log: function(message) {
             console.log(message);
@@ -722,6 +722,304 @@ $Log:data.js,v $
         error: function (callback) {
             this.options.error = callback;
             return this;
+        },
+        
+        /**
+         * Get the file size (in bytes) of the data file that will be loaded
+         * Makes a HEAD request to retrieve the Content-Length header
+         * @param {function} [callback] Optional callback function that receives the file size in bytes (or null if unavailable)
+         * @returns {Promise<number>|Data.Feed} If callback is provided, returns the Feed object for chaining. 
+         *                                        If no callback, returns a Promise that resolves with the file size (number) or null.
+         * @example
+         * // Using callback
+         * var myfeed = Data.feed({"source":"https://example.com/data.csv","type":"csv"});
+         * myfeed.getFileSize(function(size){
+         *     if (size !== null) {
+         *         console.log("File size: " + size + " bytes (" + (size/1024/1024).toFixed(2) + " MB)");
+         *     } else {
+         *         console.log("File size unavailable");
+         *     }
+         * });
+         * 
+         * // Using Promise
+         * var myfeed = Data.feed({"source":"https://example.com/data.csv","type":"csv"});
+         * myfeed.getFileSize().then(function(size){
+         *     if (size !== null) {
+         *         console.log("File size: " + size + " bytes");
+         *     }
+         * }).catch(function(error){
+         *     console.error("Error getting file size: " + error);
+         * });
+         * 
+         * // Using async/await
+         * var myfeed = Data.feed({"source":"https://example.com/data.csv","type":"csv"});
+         * try {
+         *     var size = await myfeed.getFileSize();
+         *     if (size !== null) {
+         *         console.log("File size: " + size + " bytes");
+         *     }
+         * } catch(error) {
+         *     console.error("Error: " + error);
+         * }
+         */
+        getFileSize: function (callback) {
+            const option = this.options;
+            const szUrl = option.source || option.src || option.url || option.ext;
+            
+            if (!szUrl) {
+                const error = "Data.feed(...).getFileSize(): no source defined!";
+                if (callback && typeof callback === "function") {
+                    callback(null);
+                    return this;
+                } else {
+                    return Promise.reject(new Error(error));
+                }
+            }
+            
+            // Create a promise for the file size request
+            // Use GET request (same as load() method) to avoid CORS preflight issues
+            // We'll read headers without reading the body to minimize data transfer
+            const sizePromise = new Promise((resolve, reject) => {
+                // Try XMLHttpRequest first - it may handle CORS headers better
+                if (typeof XMLHttpRequest !== 'undefined') {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', szUrl, true);
+                    
+                    // Set up event handlers
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 2) { // HEADERS_RECEIVED
+                            // Try to get Content-Length header
+                            // Note: CORS may block this header unless server exposes it
+                            try {
+                                const contentLength = xhr.getResponseHeader('Content-Length');
+                                if (contentLength && contentLength.trim() !== '' && contentLength.trim() !== '0') {
+                                    const size = parseInt(contentLength.trim(), 10);
+                                    if (!isNaN(size) && size > 0) {
+                                        xhr.abort(); // Cancel the request since we got what we need
+                                        resolve(size);
+                                        return;
+                                    }
+                                }
+                            } catch(e) {
+                                // Header might not be accessible due to CORS
+                            }
+                        } else if (xhr.readyState === 4) { // DONE
+                            if (xhr.status === 200 || xhr.status === 206) {
+                                try {
+                                    const contentLength = xhr.getResponseHeader('Content-Length');
+                                    if (contentLength && contentLength.trim() !== '' && contentLength.trim() !== '0') {
+                                        const size = parseInt(contentLength.trim(), 10);
+                                        if (!isNaN(size) && size > 0) {
+                                            resolve(size);
+                                            return;
+                                        }
+                                    }
+                                } catch(e) {
+                                    // Header might not be accessible due to CORS
+                                }
+                            }
+                            // If XMLHttpRequest didn't work, try fetch with Range request
+                            if (typeof fetch !== 'undefined') {
+                                // Try Range request to get Content-Range header
+                                fetch(szUrl, { 
+                                    method: 'GET',
+                                    headers: { 'Range': 'bytes=0-0' }
+                                })
+                                .then(rangeResponse => {
+                                    const contentRange = rangeResponse.headers.get('content-range');
+                                    if (contentRange) {
+                                        const match = contentRange.match(/\/(\d+)/);
+                                        if (match && match[1]) {
+                                            const size = parseInt(match[1], 10);
+                                            if (!isNaN(size) && size > 0) {
+                                                resolve(size);
+                                                return;
+                                            }
+                                        }
+                                    }
+                                    // Fallback to regular GET
+                                    return fetch(szUrl, { method: 'GET' });
+                                })
+                                .then(response => {
+                                    if (response) {
+                                        const contentLength = response.headers.get('content-length');
+                                        if (contentLength && contentLength.trim() !== '' && contentLength.trim() !== '0') {
+                                            const size = parseInt(contentLength.trim(), 10);
+                                            if (!isNaN(size) && size > 0) {
+                                                resolve(size);
+                                            } else {
+                                                resolve(null);
+                                            }
+                                        } else {
+                                            resolve(null);
+                                        }
+                                    } else {
+                                        resolve(null);
+                                    }
+                                })
+                                .catch(() => resolve(null));
+                            } else {
+                                resolve(null);
+                            }
+                        }
+                    };
+                    
+                    xhr.onerror = function() {
+                        // Fall back to fetch if XHR fails
+                        if (typeof fetch !== 'undefined') {
+                            fetch(szUrl, { method: 'GET' })
+                            .then(response => {
+                                const contentLength = response.headers.get('content-length');
+                                if (contentLength && contentLength.trim() !== '') {
+                                    const size = parseInt(contentLength.trim(), 10);
+                                    if (!isNaN(size) && size > 0) {
+                                        resolve(size);
+                                    } else {
+                                        resolve(null);
+                                    }
+                                } else {
+                                    resolve(null);
+                                }
+                            })
+                            .catch(() => resolve(null));
+                        } else {
+                            resolve(null);
+                        }
+                    };
+                    
+                    xhr.send();
+                } else if (typeof fetch !== 'undefined') {
+                    // Fallback to fetch API if XMLHttpRequest not available
+                    // First try: Regular GET request (same as load() uses)
+                    // Check Content-Length header from the response
+                    fetch(szUrl, { method: 'GET' })
+                    .then(response => {
+                        if (!response.ok) {
+                            // If response is not OK, try Range request
+                            throw new Error('Response not OK');
+                        }
+                        
+                        // Check Content-Length header first (most common)
+                        const contentLength = response.headers.get('content-length');
+                        if (contentLength && contentLength.trim() !== '') {
+                            const size = parseInt(contentLength.trim(), 10);
+                            if (!isNaN(size) && size > 0) {
+                                resolve(size);
+                                return;
+                            }
+                        }
+                        
+                        // If Content-Length not available or invalid, try Range request as fallback
+                        // Range requests return Content-Range header with total size
+                        return fetch(szUrl, { 
+                            method: 'GET',
+                            headers: { 'Range': 'bytes=0-0' }
+                        })
+                        .then(rangeResponse => {
+                            // Check Content-Range header (format: "bytes 0-0/1234567")
+                            const contentRange = rangeResponse.headers.get('content-range');
+                            if (contentRange) {
+                                // Parse Content-Range: bytes 0-0/1234567 or bytes */1234567
+                                const match = contentRange.match(/\/(\d+)/);
+                                if (match && match[1]) {
+                                    const size = parseInt(match[1], 10);
+                                    if (!isNaN(size) && size > 0) {
+                                        resolve(size);
+                                        return;
+                                    }
+                                }
+                            }
+                            
+                            // For 206 Partial Content, Content-Length is the range size, not total
+                            // For 200 OK on Range request, Content-Length should be the full size
+                            if (rangeResponse.status === 200 || rangeResponse.status === 206) {
+                                const rangeContentLength = rangeResponse.headers.get('content-length');
+                                if (rangeContentLength && rangeContentLength.trim() !== '') {
+                                    // For 206, this is just the range size, not helpful
+                                    // For 200, this should be the full size
+                                    if (rangeResponse.status === 200) {
+                                        const size = parseInt(rangeContentLength.trim(), 10);
+                                        if (!isNaN(size) && size > 0) {
+                                            resolve(size);
+                                            return;
+                                        }
+                                    }
+                                }
+                            }
+                            
+                            resolve(null);
+                        })
+                        .catch(() => resolve(null));
+                    })
+                    .catch(error => {
+                        // If fetch fails, try jQuery as fallback
+                        if (typeof $ !== 'undefined' && $.ajax) {
+                            $.ajax({
+                                url: szUrl,
+                                type: 'GET',
+                                success: function(data, textStatus, jqXHR) {
+                                    const contentLength = jqXHR.getResponseHeader('Content-Length');
+                                    if (contentLength) {
+                                        const size = parseInt(contentLength, 10);
+                                        if (!isNaN(size) && size > 0) {
+                                            resolve(size);
+                                        } else {
+                                            resolve(null);
+                                        }
+                                    } else {
+                                        resolve(null);
+                                    }
+                                },
+                                error: function() {
+                                    resolve(null);
+                                }
+                            });
+                        } else {
+                            resolve(null); // Gracefully return null instead of rejecting
+                        }
+                    });
+                } else if (typeof $ !== 'undefined' && $.ajax) {
+                    // Fallback to jQuery if fetch is not available
+                    // Use GET instead of HEAD to match load() behavior and avoid CORS issues
+                    $.ajax({
+                        url: szUrl,
+                        type: 'GET',
+                        success: function(data, textStatus, jqXHR) {
+                            const contentLength = jqXHR.getResponseHeader('Content-Length');
+                            if (contentLength) {
+                                const size = parseInt(contentLength, 10);
+                                if (!isNaN(size) && size > 0) {
+                                    resolve(size);
+                                } else {
+                                    resolve(null);
+                                }
+                            } else {
+                                resolve(null);
+                            }
+                        },
+                        error: function() {
+                            resolve(null);
+                        }
+                    });
+                } else {
+                    reject(new Error("Neither fetch API nor jQuery available for file size request"));
+                }
+            });
+            
+            // Handle callback or return promise
+            if (callback && typeof callback === "function") {
+                sizePromise
+                    .then(size => callback(size))
+                    .catch(error => {
+                        if (this.options.error && typeof this.options.error === "function") {
+                            this.options.error("getFileSize error: " + error.message);
+                        }
+                        callback(null);
+                    });
+                return this;
+            } else {
+                return sizePromise;
+            }
         }
     };
 
@@ -6618,7 +6916,13 @@ $Log:data.js,v $
                             filterObj = {};
                             filterObj.szSelectionField = szTokenA[0].replace(/("|)/g, "");
                             filterObj.szSelectionOp = szTokenA[1];
-                            filterObj.szSelectionValue = szTokenA[2].replace(/("|)/g, "");
+                            // For IN operator, preserve parentheses if present (standard SQL syntax)
+                            // Otherwise remove quotes as before
+                            if (szTokenA[1].toUpperCase() == "IN" && szTokenA[2].startsWith('(') && szTokenA[2].endsWith(')')) {
+                                filterObj.szSelectionValue = szTokenA[2]; // Keep parentheses for IN
+                            } else {
+                                filterObj.szSelectionValue = szTokenA[2].replace(/("|)/g, "");
+                            }
                             nToken = 3;
                         }
                         if (filterObj.szSelectionOp == "BETWEEN") {
@@ -6741,9 +7045,28 @@ $Log:data.js,v $
                             result = !regex.test(this.__szValue);
                         } else
                         if (this.__szSelectionOp == "IN") {
-                            // Assume values are comma-separated
-                            const values = this.__szSelectionValue.split(",").map(v => v.trim());
-                            result = values.includes(this.__szValue);
+                            // Support both syntaxes:
+                            // 1. IN "value1,value2,value3" (old syntax)
+                            // 2. IN (value1,value2,value3) (standard SQL syntax)
+                            let valuesStr = this.__szSelectionValue;
+                            
+                            // Remove parentheses if present: (value1,value2) -> value1,value2
+                            if (valuesStr.startsWith('(') && valuesStr.endsWith(')')) {
+                                valuesStr = valuesStr.slice(1, -1);
+                            }
+                            
+                            // Split by comma and trim each value, remove quotes if present
+                            const values = valuesStr.split(",").map(v => v.trim().replace(/^["']|["']$/g, ''));
+                            
+                            // Check if value matches (support both string and numeric comparison)
+                            const strMatch = values.includes(this.__szValue);
+                            const numValue = __scanValue(this.__szValue);
+                            const numMatch = !isNaN(numValue) && values.some(v => {
+                                const numV = Number(v);
+                                return !isNaN(numV) && numValue === numV;
+                            });
+                            
+                            result = strMatch || numMatch;
                         } else
                         if ((this.__szSelectionOp == "BETWEEN")) {
                             result = ((nValue >= Number(this.__szSelectionValue)) &&
