@@ -68,13 +68,71 @@ $Log:data.js,v $
  * });
  *
  * @author Guenter Richter guenter.richter@medienobjekte.de
- * @version 1.58 
+ * @version 1.61 
  * @copyright CC BY SA
  * @license MIT
  */
 
 (function (window, document, undefined) {
 
+    // =============================================================================
+    // jQuery-FREE VERSION - Native JavaScript replacements
+    // =============================================================================
+
+    /**
+     * Load external script dynamically (replaces $.getScript)
+     * @param {string} url - The URL of the script to load
+     * @returns {Promise} - Promise that resolves when script is loaded
+     */
+    function _loadScript(url) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = url;
+            script.onload = () => resolve(script);
+            script.onerror = () => reject(new Error(`Failed to load script: ${url}`));
+            document.head.appendChild(script);
+        });
+    }
+
+    /**
+     * Parse XML string into DOM document (replaces $(data).find())
+     * @param {string} xmlString - The XML string to parse
+     * @returns {Document} - Parsed XML document
+     */
+    function _parseXML(xmlString) {
+        const parser = new DOMParser();
+        return parser.parseFromString(xmlString, "text/xml");
+    }
+
+    /**
+     * Query selector helper with error handling
+     * @param {Element|Document} element - The element to query
+     * @param {string} selector - The CSS selector
+     * @returns {Element|null} - Found element or null
+     */
+    function _find(element, selector) {
+        try {
+            return element.querySelector(selector);
+        } catch(e) {
+            console.warn('Invalid selector:', selector, e);
+            return null;
+        }
+    }
+
+    /**
+     * Query selector all helper
+     * @param {Element|Document} element - The element to query
+     * @param {string} selector - The CSS selector
+     * @returns {Array} - Array of found elements
+     */
+    function _findAll(element, selector) {
+        try {
+            return Array.from(element.querySelectorAll(selector));
+        } catch(e) {
+            console.warn('Invalid selector:', selector, e);
+            return [];
+        }
+    }
 
     // write to console with time in sec : millisec
     //
@@ -127,7 +185,7 @@ $Log:data.js,v $
      */
 
     var Data = {
-        version: "1.58",
+        version: "1.61",
         errors: [],
         log: function(message) {
             console.log(message);
@@ -675,13 +733,14 @@ $Log:data.js,v $
                 this.__doJsonDBImport(szUrl, option);
             } else
             if ((option.type == "jsonstat") || (option.type == "jsonStat") || (option.type == "JSONSTAT")) {
-                $.getScript("http://json-stat.org/lib/json-stat.js")
-                    .done(function (script, textStatus) {
+                _loadScript("http://json-stat.org/lib/json-stat.js")
+                    .then(function (script) {
                         __this.__doLoadJSONstat(szUrl, option);
                         return;
                     })
-                    .fail(function (jqxhr, settings, exception) {
+                    .catch(function (error) {
                         _alert("'" + option.type + "' unknown format !");
+                        console.error(error);
                     });
             } else
             if ((option.type == "parquet") || (option.type == "PARQUET")) {
@@ -952,57 +1011,12 @@ $Log:data.js,v $
                         .catch(() => resolve(null));
                     })
                     .catch(error => {
-                        // If fetch fails, try jQuery as fallback
-                        if (typeof $ !== 'undefined' && $.ajax) {
-                            $.ajax({
-                                url: szUrl,
-                                type: 'GET',
-                                success: function(data, textStatus, jqXHR) {
-                                    const contentLength = jqXHR.getResponseHeader('Content-Length');
-                                    if (contentLength) {
-                                        const size = parseInt(contentLength, 10);
-                                        if (!isNaN(size) && size > 0) {
-                                            resolve(size);
-                                        } else {
-                                            resolve(null);
-                                        }
-                                    } else {
-                                        resolve(null);
-                                    }
-                                },
-                                error: function() {
-                                    resolve(null);
-                                }
-                            });
-                        } else {
-                            resolve(null); // Gracefully return null instead of rejecting
-                        }
-                    });
-                } else if (typeof $ !== 'undefined' && $.ajax) {
-                    // Fallback to jQuery if fetch is not available
-                    // Use GET instead of HEAD to match load() behavior and avoid CORS issues
-                    $.ajax({
-                        url: szUrl,
-                        type: 'GET',
-                        success: function(data, textStatus, jqXHR) {
-                            const contentLength = jqXHR.getResponseHeader('Content-Length');
-                            if (contentLength) {
-                                const size = parseInt(contentLength, 10);
-                                if (!isNaN(size) && size > 0) {
-                                    resolve(size);
-                                } else {
-                                    resolve(null);
-                                }
-                            } else {
-                                resolve(null);
-                            }
-                        },
-                        error: function() {
-                            resolve(null);
-                        }
+                        // No jQuery fallback - resolve with null gracefully
+                        resolve(null);
                     });
                 } else {
-                    reject(new Error("Neither fetch API nor jQuery available for file size request"));
+                    // Fetch API not available (very old browser)
+                    reject(new Error("Fetch API not available for file size request"));
                 }
             });
             
@@ -1131,18 +1145,18 @@ $Log:data.js,v $
 
         opt.url = szUrl;
 
-        $.getScript(szUrl + ".gz")
-            .done(function (script, textStatus) {
+        _loadScript(szUrl + ".gz")
+            .then(function (script) {
                 __this.__processJsonDBData(script, opt);
             })
-            .fail(function (jqxhr, settings, exception) {
-                $.getScript(szUrl)
-                    .done(function (script, textStatus) {
+            .catch(function (error) {
+                _loadScript(szUrl)
+                    .then(function (script) {
                         __this.__processJsonDBData(script, opt);
                     })
-                    .fail(function (jqxhr, settings, exception) {
+                    .catch(function (error) {
                         if (__this.options.error) {
-                            __this.options.error("\"" + szUrl + "\" " + exception);
+                            __this.options.error("\"" + szUrl + "\" " + error.message);
                         }
                     });
             });
@@ -1197,20 +1211,28 @@ $Log:data.js,v $
 
         _LOG("__doCSVImport: " + szUrl);
         const __this = this;
-        $.ajax({
-            type: "GET",
-            url: szUrl,
-            cache: opt.cache,
-            dataType: "text",
-            success: function (data) {
-                __this.__processCSVData(data, opt);
-            },
-            error: function (jqxhr, settings, exception) {
-                if ((typeof (opt) != "undefined") && opt.error) {
-                    opt.error("\"" + szUrl + "\" " + exception);
+
+        // Use Fetch API instead of $.ajax
+        const fetchOptions = {
+            method: 'GET',
+            cache: opt.cache ? 'default' : 'no-cache'
+        };
+
+        fetch(szUrl, fetchOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            }
-        });
+                return response.text();
+            })
+            .then(data => {
+                __this.__processCSVData(data, opt);
+            })
+            .catch(error => {
+                if ((typeof (opt) != "undefined") && opt.error) {
+                    opt.error("\"" + szUrl + "\" " + error.message);
+                }
+            });
     };
 
     /**
@@ -1233,15 +1255,16 @@ $Log:data.js,v $
         if (typeof Papa === "undefined") {
             _LOG("__processCSVData:load csv parser!");
             const __this = this;
-            $.getScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
-                .done(function (script, textStatus) {
+            _loadScript("https://cdnjs.cloudflare.com/ajax/libs/PapaParse/4.1.2/papaparse.min.js")
+                .then(function (script) {
                     __this.__processCSVData(csv, opt);
                 })
-                .fail(function (jqxhr, settings, exception) {
+                .catch(function (error) {
                     _alert("'" + opt.type + "' parser not loaded !");
                     if (opt.error) {
                         opt.error("'" + opt.type + "' parser not loaded !");
                     }
+                    console.error(error);
                 });
             return false; // Indicates that the function is waiting for the parser to load.
         }
@@ -1272,12 +1295,12 @@ $Log:data.js,v $
              // Check if autodetect delimiter failed.
             if (newData[0].length !== newData[1].length) {
                 _LOG("csv parser: autodetect failed");
-                const delimiters = [";", ","];
+                const delimiters = [",", ";"];
                 let success = false;
                 for (const delimiter of delimiters) {
                     _LOG(`csv parser: delimiter = ${delimiter}`);
                     newData = Papa.parse(csv, { delimiter }).data;
-                    if (newData[0].length === newData[1].length) {
+                    if (newData[0].length === newData[1].length & (newData[0].length > 1)) {
                         success = true;
                         break;
                     }
