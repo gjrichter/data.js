@@ -68,7 +68,7 @@ $Log:data.js,v $
  * });
  *
  * @author Guenter Richter guenter.richter@medienobjekte.de
- * @version 1.61 
+ * @version 1.62 
  * @copyright CC BY SA
  * @license MIT
  */
@@ -185,7 +185,7 @@ $Log:data.js,v $
      */
 
     var Data = {
-        version: "1.61",
+        version: "1.62",
         errors: [],
         log: function(message) {
             console.log(message);
@@ -566,6 +566,20 @@ $Log:data.js,v $
                     _LOG("Processing Geobuf ArrayBuffer directly: " + this.options.source.byteLength + " bytes");
                     this.feed.__processGeobufData(this.options.source, this.options);
                 }
+            } else
+            if ((this.options.type == "jsonstat") || (this.options.type == "jsonStat") || (this.options.type == "JSONSTAT")) {
+                const __thisObj = this;
+                _loadScript("http://json-stat.org/lib/json-stat.js")
+                    .then(function (script) {
+                        __thisObj.feed.__processJSONstatData(__thisObj.options.source, __thisObj.options);
+                    })
+                    .catch(function (error) {
+                        if (__thisObj.options.error) {
+                            __thisObj.options.error(error);
+                        }
+                        _alert("'" + __thisObj.options.type + "' parser not loaded !");
+                        console.error(error);
+                    });
             }
             return this;
         },
@@ -598,6 +612,7 @@ $Log:data.js,v $
      *								   <tr><td><b>"geobuf"</b> or <b>"pbf"</b></td><td>the source is a Geobuf file (Protocol Buffer geospatial format, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"topojson"</b></td><td>the source is a JSON object formatted in <a href="https://github.com/topojson/topojson" target="_blank">TopoJson</a></td></tr>
      *								   <tr><td><b>"jsonDB"</b></td><td>the source is a jsonDB table object</td></tr>
+     *								   <tr><td><b>"jsonstat"</b></td><td>the source is a JSON-stat 2.0 dataset or bundle (object or JSON string), see <a href="https://json-stat.org/format/" target="_blank">JSON-stat</a></td></tr>
      *								   <tr><td><b>"rss"</b></td><td>the source is an xml rss feed</td></tr>
      *								   </table> 
      * @type {Data.Object}
@@ -1088,42 +1103,250 @@ $Log:data.js,v $
         JSONstat(szUrl,
             function () {
 
-                const dataA = [];
+                const ds = this.Dataset(0);
+                let dataA;
 
-                // for now we take dimension 0 and 1
-                // 0 for the y axis = first column
-                // 1 for the x axis = values columns
-
-                // first row = column names
-                //
-                let row = [this.Dataset(0).Dimension(0).label];
-                const index = this.Dataset(0).Dimension(1).id;
-                for (let i = 0; i < index.length; i++) {
-                    row.push(this.Dataset(0).Dimension(1).Category(index[i]).label);
-                }
-                dataA.push(row);
-
-                // data rows
-                //
-                for (let i = 0; i < this.Dataset(0).Dimension(0).length; i++) {
-                    row = [];
-                    row.push(this.Dataset(0).Dimension(0).Category(this.Dataset(0).Dimension(0).id[i]).label);
-                    for (let ii = 0; ii < this.Dataset(0).Dimension(1).length; ii++) {
-                        row.push(this.Dataset(0).Data([i, ii]).value);
+                if (typeof ds.toTable === "function") {
+                    const table = ds.toTable({ type: "array", content: "id" });
+                    if (table && Array.isArray(table) && table.length > 0) {
+                        dataA = table;
                     }
-                    dataA.push(row);
+                }
+                if (!dataA) {
+                    const ndim = ds.length != null ? ds.length : (function () { let k = 0; while (ds.Dimension(k)) { k++; } return k; })();
+                    const sizes = [];
+                    for (let d = 0; d < ndim; d++) {
+                        sizes.push(ds.Dimension(d).length);
+                    }
+                    let totalSize = 1;
+                    for (let d = 0; d < ndim; d++) {
+                        totalSize *= sizes[d];
+                    }
+                    dataA = [];
+                    const header = [];
+                    for (let d = 0; d < ndim; d++) {
+                        header.push(ds.Dimension(d).id);
+                    }
+                    header.push("value");
+                    dataA.push(header);
+                    for (let linear = 0; linear < totalSize; linear++) {
+                        const indices = [];
+                        let rem = linear;
+                        for (let d = ndim - 1; d >= 0; d--) {
+                            indices[d] = rem % sizes[d];
+                            rem = Math.floor(rem / sizes[d]);
+                        }
+                        const row = [];
+                        for (let d = 0; d < ndim; d++) {
+                            const dim = ds.Dimension(d);
+                            const catId = dim.id[indices[d]];
+                            row.push(catId);
+                        }
+                        const cell = ds.Data(indices);
+                        row.push(cell != null && cell.value !== undefined ? cell.value : null);
+                        dataA.push(row);
+                    }
                 }
 
-                // user defined callback
                 if (opt.callback) {
                     opt.callback(dataA, opt);
                     return;
                 }
-
-                // finish the data table object 
                 __this.__createDataTableObject(dataA, opt.type, opt);
 
             });
+    };
+
+    /**
+     * __processJSONstatData
+     * reads JSON-stat format from an in-memory object or JSON string
+     * parses the data into the map data source (same table shape as __doLoadJSONstat)
+     * @param {Object|string} source - JSON-stat 2.0 dataset/bundle object or JSON string
+     * @param {Object} opt - options (success, error, callback, type)
+     * @type void
+     */
+    Data.Feed.prototype.__processJSONstatData = function (source, opt) {
+
+        const __this = this;
+
+        let data = null;
+        if (typeof source === "string") {
+            try {
+                data = JSON.parse(source);
+            } catch (e) {
+                if (opt.error) {
+                    opt.error(e);
+                }
+                __this.__createDataTableObject([], "jsonstat", opt);
+                return;
+            }
+        } else {
+            data = source;
+        }
+
+        if (!data || (data.class !== "dataset" && data.class !== "bundle")) {
+            if (opt.error) {
+                opt.error(new Error("Invalid JSON-stat: expected dataset or bundle"));
+            }
+            __this.__createDataTableObject([], "jsonstat", opt);
+            return;
+        }
+
+        // Use official JSONstat() API when available (accepts object, URL or "version")
+        if (typeof JSONstat === "function") {
+            JSONstat(data, function () {
+                const ds = this.Dataset(0);
+                let dataA;
+                if (typeof ds.toTable === "function") {
+                    const table = ds.toTable({ type: "array" });
+                    if (table && Array.isArray(table) && table.length > 0) {
+                        dataA = table;
+                    }
+                }
+                if (!dataA) {
+                    const ndim = ds.length != null ? ds.length : (function () { let k = 0; while (ds.Dimension(k)) { k++; } return k; })();
+                    const sizes = [];
+                    for (let d = 0; d < ndim; d++) {
+                        sizes.push(ds.Dimension(d).length);
+                    }
+                    let totalSize = 1;
+                    for (let d = 0; d < ndim; d++) {
+                        totalSize *= sizes[d];
+                    }
+                    dataA = [];
+                    const header = [];
+                    for (let d = 0; d < ndim; d++) {
+                        header.push(ds.Dimension(d).id);
+                    }
+                    header.push("value");
+                    dataA.push(header);
+                    for (let linear = 0; linear < totalSize; linear++) {
+                        const indices = [];
+                        let rem = linear;
+                        for (let d = ndim - 1; d >= 0; d--) {
+                            indices[d] = rem % sizes[d];
+                            rem = Math.floor(rem / sizes[d]);
+                        }
+                        const row = [];
+                        for (let d = 0; d < ndim; d++) {
+                            const dim = ds.Dimension(d);
+                            const catId = dim.id[indices[d]];
+                            row.push(catId);
+                        }
+                        const cell = ds.Data(indices);
+                        row.push(cell != null && cell.value !== undefined ? cell.value : null);
+                        dataA.push(row);
+                    }
+                }
+                if (opt.callback) {
+                    opt.callback(dataA, opt);
+                    return;
+                }
+                __this.__createDataTableObject(dataA, opt.type, opt);
+            });
+            return;
+        }
+
+        // Fallback: inline JSON-stat 2.0 parser when library not loaded
+        // Resolve dataset (bundle -> first dataset; else use root)
+        let dataset = data;
+        if (data.class === "bundle") {
+            const keys = Object.keys(data).filter(function (k) {
+                const v = data[k];
+                return k !== "class" && v && typeof v === "object" && v.class === "dataset";
+            });
+            if (keys.length === 0) {
+                if (opt.error) { opt.error(new Error("JSON-stat bundle has no dataset")); }
+                __this.__createDataTableObject([], "jsonstat", opt);
+                return;
+            }
+            dataset = data[keys[0]];
+        }
+
+        const id = dataset.id;
+        const size = dataset.size;
+        const dimension = dataset.dimension;
+        const value = dataset.value;
+
+        if (!id || !size || !dimension || (value === undefined)) {
+            if (opt.error) { opt.error(new Error("Invalid JSON-stat dataset: missing id/size/dimension/value")); }
+            __this.__createDataTableObject([], "jsonstat", opt);
+            return;
+        }
+
+        if (id.length < 1 || size.length < 1) {
+            if (opt.error) { opt.error(new Error("JSON-stat dataset must have at least one dimension")); }
+            __this.__createDataTableObject([], "jsonstat", opt);
+            return;
+        }
+
+        const ndim = id.length;
+
+        function getDimIds(dim) {
+            const cat = dim && dim.category && dim.category.index;
+            if (Array.isArray(cat)) { return cat; }
+            if (cat && typeof cat === "object") {
+                const keys = Object.keys(cat);
+                keys.sort(function (a, b) { return cat[a] - cat[b]; });
+                return keys;
+            }
+            return [];
+        }
+
+        function getLabel(dim, catId) {
+            const labels = dim && dim.category && dim.category.label;
+            if (labels && typeof labels[catId] !== "undefined") { return labels[catId]; }
+            return catId;
+        }
+
+        function getValue(idx) {
+            if (Array.isArray(value)) { return value[idx]; }
+            if (value && typeof value === "object" && value.hasOwnProperty(String(idx))) {
+                return value[String(idx)];
+            }
+            return null;
+        }
+
+        const dims = [];
+        const idsPerDim = [];
+        for (let d = 0; d < ndim; d++) {
+            dims.push(dimension[id[d]]);
+            idsPerDim.push(getDimIds(dims[d]));
+        }
+
+        let totalSize = 1;
+        for (let d = 0; d < ndim; d++) {
+            totalSize *= size[d];
+        }
+
+        const dataA = [];
+        const header = [];
+        for (let d = 0; d < ndim; d++) {
+            header.push(id[d]);
+        }
+        header.push("value");
+        dataA.push(header);
+
+        for (let linear = 0; linear < totalSize; linear++) {
+            const indices = [];
+            let rem = linear;
+            for (let d = ndim - 1; d >= 0; d--) {
+                indices[d] = rem % size[d];
+                rem = Math.floor(rem / size[d]);
+            }
+            const row = [];
+            for (let d = 0; d < ndim; d++) {
+                row.push(idsPerDim[d][indices[d]]);
+            }
+            row.push(getValue(linear));
+            dataA.push(row);
+        }
+
+        if (opt.callback) {
+            opt.callback(dataA, opt);
+            return;
+        }
+        __this.__createDataTableObject(dataA, opt.type, opt);
     };
 
     // ---------------------------------
