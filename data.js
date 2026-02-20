@@ -1104,16 +1104,9 @@ $Log:data.js,v $
             function () {
 
                 const ds = this.Dataset(0);
-                let dataA;
-
-                if (typeof ds.toTable === "function") {
-                    const table = ds.toTable({ type: "array", content: "id" });
-                    if (table && Array.isArray(table) && table.length > 0) {
-                        dataA = table;
-                    }
-                }
-                if (!dataA) {
-                    const ndim = ds.length != null ? ds.length : (function () { let k = 0; while (ds.Dimension(k)) { k++; } return k; })();
+                const ndim = ds.length != null ? ds.length : (function () { let k = 0; while (ds.Dimension(k)) { k++; } return k; })();
+                const dataA = [];
+                {
                     const sizes = [];
                     for (let d = 0; d < ndim; d++) {
                         sizes.push(ds.Dimension(d).length);
@@ -1122,10 +1115,10 @@ $Log:data.js,v $
                     for (let d = 0; d < ndim; d++) {
                         totalSize *= sizes[d];
                     }
-                    dataA = [];
                     const header = [];
                     for (let d = 0; d < ndim; d++) {
-                        header.push(ds.Dimension(d).id);
+                        var dimName = (ds.id && Array.isArray(ds.id) && ds.id[d] != null) ? ds.id[d] : ds.Dimension(d).id;
+                        header.push(typeof dimName === "string" ? dimName : "dim_" + d);
                     }
                     header.push("value");
                     dataA.push(header);
@@ -1196,47 +1189,39 @@ $Log:data.js,v $
         if (typeof JSONstat === "function") {
             JSONstat(data, function () {
                 const ds = this.Dataset(0);
-                let dataA;
-                if (typeof ds.toTable === "function") {
-                    const table = ds.toTable({ type: "array" });
-                    if (table && Array.isArray(table) && table.length > 0) {
-                        dataA = table;
-                    }
+                const ndim = ds.length != null ? ds.length : (function () { let k = 0; while (ds.Dimension(k)) { k++; } return k; })();
+                const dataA = [];
+                const sizes = [];
+                for (let d = 0; d < ndim; d++) {
+                    sizes.push(ds.Dimension(d).length);
                 }
-                if (!dataA) {
-                    const ndim = ds.length != null ? ds.length : (function () { let k = 0; while (ds.Dimension(k)) { k++; } return k; })();
-                    const sizes = [];
+                let totalSize = 1;
+                for (let d = 0; d < ndim; d++) {
+                    totalSize *= sizes[d];
+                }
+                const header = [];
+                for (let d = 0; d < ndim; d++) {
+                    var dimName = (ds.id && Array.isArray(ds.id) && ds.id[d] != null) ? ds.id[d] : ds.Dimension(d).id;
+                    header.push(typeof dimName === "string" ? dimName : "dim_" + d);
+                }
+                header.push("value");
+                dataA.push(header);
+                for (let linear = 0; linear < totalSize; linear++) {
+                    const indices = [];
+                    let rem = linear;
+                    for (let d = ndim - 1; d >= 0; d--) {
+                        indices[d] = rem % sizes[d];
+                        rem = Math.floor(rem / sizes[d]);
+                    }
+                    const row = [];
                     for (let d = 0; d < ndim; d++) {
-                        sizes.push(ds.Dimension(d).length);
+                        const dim = ds.Dimension(d);
+                        const catId = dim.id[indices[d]];
+                        row.push(catId);
                     }
-                    let totalSize = 1;
-                    for (let d = 0; d < ndim; d++) {
-                        totalSize *= sizes[d];
-                    }
-                    dataA = [];
-                    const header = [];
-                    for (let d = 0; d < ndim; d++) {
-                        header.push(ds.Dimension(d).id);
-                    }
-                    header.push("value");
-                    dataA.push(header);
-                    for (let linear = 0; linear < totalSize; linear++) {
-                        const indices = [];
-                        let rem = linear;
-                        for (let d = ndim - 1; d >= 0; d--) {
-                            indices[d] = rem % sizes[d];
-                            rem = Math.floor(rem / sizes[d]);
-                        }
-                        const row = [];
-                        for (let d = 0; d < ndim; d++) {
-                            const dim = ds.Dimension(d);
-                            const catId = dim.id[indices[d]];
-                            row.push(catId);
-                        }
-                        const cell = ds.Data(indices);
-                        row.push(cell != null && cell.value !== undefined ? cell.value : null);
-                        dataA.push(row);
-                    }
+                    const cell = ds.Data(indices);
+                    row.push(cell != null && cell.value !== undefined ? cell.value : null);
+                    dataA.push(row);
                 }
                 if (opt.callback) {
                     opt.callback(dataA, opt);
@@ -6586,7 +6571,7 @@ $Log:data.js,v $
             this.fields = [];
             for (let a = 0, len = dataA[0].length; a < len; a++) {
                 this.fields.push({
-                    id: (dataA[0][a] || " ").trim(),
+                    id: String(dataA[0][a] != null ? dataA[0][a] : " ").trim(),
                     typ: 0,
                     width: 60,
                     decimals: 0
