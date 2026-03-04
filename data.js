@@ -7258,7 +7258,7 @@ $Log:data.js,v $
                             }
                         } else
                         if (this.__szSelectionOp == "<>") {
-                            result = !((this.__szValue == this.__szSelectionValue) || (nValue == Number(this.__szSelectionValue)));
+                            result = !((this.__szValue == this.__szSelectionValue));
                         } else
                         if (this.__szSelectionOp == ">") {
                             result = (nValue > Number(this.__szSelectionValue));
@@ -7334,6 +7334,7 @@ $Log:data.js,v $
             }
             this.selection.fields = this.fields.slice();
             this.selection.table.fields = this.table.fields;
+
             return this.selection;
         },
         /**
@@ -7393,7 +7394,6 @@ $Log:data.js,v $
                     }
                 }
             }
-
             this.aggregation = new Data.Table();
 
             xRecords = [];
@@ -7418,7 +7418,7 @@ $Log:data.js,v $
                 }
             }
 
-            for (let j = 0, len = xRecords.length; j < len; j++) {
+            for (let j in xRecords) {
                 if (mean) {
                     xRecords[j][nAggregateIndexA.length] /= xCount[j][nAggregateIndexA.length];
                 }
