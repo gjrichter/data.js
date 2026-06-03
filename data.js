@@ -2741,10 +2741,24 @@ $Log:data.js,v $
      */
     Data.Feed.prototype.__processTopoJsonData = function (script, opt) {
 
-        if (typeof (topojson) == "undefined") {
-            _alert("'" + opt.type + "' parser not loaded !");
-            return;
+        // Check if topojson-client is loaded. If not, load it and retry.
+        if (typeof topojson === "undefined") {
+            _LOG("__processTopoJsonData:load topojson parser!");
+            const __this = this;
+            _loadScript("https://unpkg.com/topojson-client@3.1.0/dist/topojson-client.min.js")
+                .then(function () {
+                    __this.__processTopoJsonData(script, opt);
+                })
+                .catch(function (error) {
+                    _alert("'" + opt.type + "' parser not loaded !");
+                    if (opt.error) {
+                        opt.error("'" + opt.type + "' parser not loaded !");
+                    }
+                    console.error(error);
+                });
+            return false;
         }
+
         let data = null;
         if (typeof (script) == "string") {
             try {
