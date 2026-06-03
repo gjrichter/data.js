@@ -68,7 +68,7 @@ $Log:data.js,v $
  * });
  *
  * @author Guenter Richter guenter.richter@medienobjekte.de
- * @version 1.62 
+ * @version 1.63 
  * @copyright CC BY SA
  * @license MIT
  */
@@ -95,7 +95,7 @@ $Log:data.js,v $
     }
 
     /**
-     * Parse XML string into DOM document (replaces $(data).find())
+     * Parse XML string into DOM document (replaces jQuery XML queries)
      * @param {string} xmlString - The XML string to parse
      * @returns {Document} - Parsed XML document
      */
@@ -132,6 +132,174 @@ $Log:data.js,v $
             console.warn('Invalid selector:', selector, e);
             return [];
         }
+    }
+
+    /**
+     * @param {string|Document|Element} data
+     * @returns {Document|Element}
+     */
+    function _ensureXMLDocument(data) {
+        if (typeof data === 'string') {
+            return _parseXML(data);
+        }
+        return data;
+    }
+
+    /**
+     * @param {Document|Element} data
+     * @returns {Element}
+     */
+    function _xmlRoot(data) {
+        const doc = _ensureXMLDocument(data);
+        return (doc.nodeType === 9) ? doc.documentElement : doc;
+    }
+
+    /**
+     * @param {string} szUrl
+     * @param {Object} [opt]
+     * @returns {Promise<string>}
+     */
+    function _fetchText(szUrl, opt) {
+        return fetch(szUrl, {
+            method: 'GET',
+            cache: (opt && opt.cache === false) ? 'no-cache' : 'default'
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.text();
+        });
+    }
+
+    /**
+     * @param {string} szUrl
+     * @param {Object} [opt]
+     * @returns {Promise<Object>}
+     */
+    function _fetchJSON(szUrl, opt) {
+        return fetch(szUrl, {
+            method: 'GET',
+            cache: (opt && opt.cache === false) ? 'no-cache' : 'default'
+        }).then(function (response) {
+            if (!response.ok) {
+                throw new Error('HTTP error! status: ' + response.status);
+            }
+            return response.json();
+        });
+    }
+
+    /**
+     * @param {string} szUrl
+     * @param {Object} [opt]
+     * @returns {Promise<Document>}
+     */
+    function _fetchXML(szUrl, opt) {
+        return _fetchText(szUrl, opt).then(function (text) {
+            return _parseXML(text);
+        });
+    }
+
+    /**
+     * @param {Element} root
+     * @param {string|string[]} localName
+     * @returns {Element[]}
+     */
+    function _elementsByLocalName(root, localName) {
+        if (!root) {
+            return [];
+        }
+        const names = __toArray(localName);
+        let results = [];
+        for (let i = 0; i < names.length; i++) {
+            if (root.getElementsByTagNameNS) {
+                results = results.concat(Array.from(root.getElementsByTagNameNS('*', names[i])));
+            } else {
+                results = results.concat(Array.from(root.getElementsByTagName(names[i])));
+            }
+        }
+        return results;
+    }
+
+    /**
+     * @param {Element} root
+     * @param {string|string[]} localName
+     * @returns {Element|null}
+     */
+    function _firstByLocalName(root, localName) {
+        const found = _elementsByLocalName(root, localName);
+        return found.length ? found[0] : null;
+    }
+
+    /**
+     * @param {Element} root
+     * @param {string|string[]} localName
+     * @returns {boolean}
+     */
+    function _hasByLocalName(root, localName) {
+        return !!_firstByLocalName(root, localName);
+    }
+
+    /**
+     * @param {Element} el
+     * @returns {Element[]}
+     */
+    function _elementChildren(el) {
+        return el ? Array.from(el.children || []) : [];
+    }
+
+    /**
+     * @param {Element} el
+     * @returns {string}
+     */
+    function _elementText(el) {
+        return el ? (el.textContent || '') : '';
+    }
+
+    /**
+     * @param {Element} el
+     * @param {string} name
+     * @returns {string}
+     */
+    function _elementAttr(el, name) {
+        return el ? (el.getAttribute(name) || '') : '';
+    }
+
+    /**
+     * @param {Element} el
+     * @returns {string}
+     */
+    function _elementTagName(el) {
+        return el ? (el.tagName || el.nodeName || '') : '';
+    }
+
+    /**
+     * @param {Element} root
+     * @param {string} localName
+     * @returns {Element|null}
+     */
+    function _findDescendant(root, localName) {
+        const found = _elementsByLocalName(root, localName);
+        return found.length ? found[0] : null;
+    }
+
+    /**
+     * @param {Element} root
+     * @returns {Element[]}
+     */
+    function _descendantElements(root) {
+        if (!root) {
+            return [];
+        }
+        const results = [];
+        const doc = root.ownerDocument || root;
+        const walker = doc.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+        let node;
+        while ((node = walker.nextNode()) !== null) {
+            if (node !== root) {
+                results.push(node);
+            }
+        }
+        return results;
     }
 
     // write to console with time in sec : millisec
@@ -180,12 +348,61 @@ $Log:data.js,v $
         return self.indexOf(value) === index;
     };
 
+    /**
+     * Map SQL LIKE wildcards to regex; other characters pass through as regex syntax.
+     */
+    const __sqlLikePatternToRegex = function (sqlPattern) {
+        sqlPattern = String(sqlPattern);
+        let out = '';
+        for (let i = 0; i < sqlPattern.length; i++) {
+            const c = sqlPattern.charAt(i);
+            if (c === '\\' && i + 1 < sqlPattern.length) {
+                out += '\\' + sqlPattern.charAt(i + 1);
+                i++;
+                continue;
+            }
+            if (c === '%') {
+                out += '.*';
+            } else if (c === '_') {
+                out += '.';
+            } else {
+                out += c;
+            }
+        }
+        return out;
+    };
+
+    /** LIKE: regex match after mapping SQL % and _ wildcards. */
+    const __safeSqlLikeMatch = function (value, sqlPattern, caseSensitive) {
+        if (sqlPattern == null || typeof sqlPattern === 'undefined') {
+            return false;
+        }
+        try {
+            const flags = caseSensitive ? '' : 'i';
+            const pattern = __sqlLikePatternToRegex(sqlPattern).replace(/\//g, '\\/');
+            return new RegExp(pattern, flags).test(String(value));
+        } catch (e) {
+            return false;
+        }
+    };
+
+    /** NOT / default: arbitrary regex; only / escaped (legacy). */
+    const __safeRegexMatch = function (value, pattern, caseSensitive) {
+        try {
+            const flags = caseSensitive ? '' : 'i';
+            const regexPattern = String(pattern).replace(/\//g, '\\/');
+            return new RegExp(regexPattern, flags).test(String(value));
+        } catch (e) {
+            return false;
+        }
+    };
+
     /** 
      * @namespace 
      */
 
     var Data = {
-        version: "1.62",
+        version: "1.63",
         errors: [],
         log: function(message) {
             console.log(message);
@@ -1568,19 +1785,15 @@ $Log:data.js,v $
 
         opt.format = "xml";
 
-        $.ajax({
-            type: "GET",
-            url: szUrl,
-            dataType: "xml",
-            success: function (data) {
+        _fetchXML(szUrl, opt)
+            .then(function (data) {
                 __this.__processRSSData(data, opt);
-            },
-            error: function (jqxhr, settings, exception) {
+            })
+            .catch(function (error) {
                 if ((typeof (opt) != "undefined") && opt.error) {
-                    opt.error(jqxhr, settings, exception);
+                    opt.error(error.message || error);
                 }
-            }
-        });
+            });
 
     };
 
@@ -1594,14 +1807,15 @@ $Log:data.js,v $
     Data.Feed.prototype.__processRSSData = function (data, opt) {
 
         if (opt.format == "xml") {
+            const root = _xmlRoot(data);
 
-            if ($(data).find('rss').length) {
+            if (_hasByLocalName(root, 'rss')) {
                 this.__parseRSSData(data, opt);
             } else
-            if ($(data).find('feed').length) {
+            if (_hasByLocalName(root, 'feed')) {
                 _alert("feed not yet supported");
             } else
-            if ($(data).find('atom').length) {
+            if (_hasByLocalName(root, 'atom')) {
                 _alert("atom not yet supported");
             }
         }
@@ -1619,22 +1833,25 @@ $Log:data.js,v $
         const __this = this;
 
         if (opt.format == "xml") {
+            const root = _xmlRoot(data);
+            const channels = _elementsByLocalName(root, 'channel');
+            const items = _elementsByLocalName(root, 'item');
 
-            $(data).find('channel').each(function () {
+            channels.forEach(function () {
 
                 const dataA = [];
                 let childNamesA = null;
 
-                $(data).find('item').each(function () {
+                items.forEach(function (item) {
 
                     // get item fieldnames from the first item of the channel
                     // ------------------------------------------------------
                     if (!childNamesA) {
                         const check = [];
                         childNamesA = [];
-                        const childs = $(this).children();
+                        const childs = _elementChildren(item);
                         for (let i = 0; i < childs.length; i++) {
-                            let szNode = $(this).children()[i].nodeName;
+                            let szNode = childs[i].nodeName;
                             while (check[szNode]) {
                                 szNode += "*";
                             }
@@ -1648,10 +1865,11 @@ $Log:data.js,v $
                     // make one item values
                     const row = [];
                     for (let i = 0; i < childNamesA.length; i++) {
+                        const childEl = _find(item, childNamesA[i]) || _firstByLocalName(item, childNamesA[i].replace(/\*+$/, ''));
                         if (childNamesA[i] == "enclosure") {
-                            row.push(($(this).find(childNamesA[i] + ':first').attr("url")) || "");
+                            row.push(_elementAttr(childEl, "url") || "");
                         } else {
-                            row.push(($(this).find(childNamesA[i] + ':first').text()) || "");
+                            row.push(_elementText(childEl) || "");
                         }
                     }
                     dataA.push(row);
@@ -1682,19 +1900,15 @@ $Log:data.js,v $
 
         opt.format = "xml";
 
-        $.ajax({
-            type: "GET",
-            url: szUrl,
-            dataType: "xml",
-            success: function (data) {
+        _fetchXML(szUrl, opt)
+            .then(function (data) {
                 __this.__processKMLData(data, opt);
-            },
-            error: function (jqxhr, settings, exception) {
+            })
+            .catch(function (error) {
                 if ((typeof (opt) != "undefined") && opt.error) {
-                    opt.error(jqxhr, settings, exception);
+                    opt.error(error.message || error);
                 }
-            }
-        });
+            });
 
     };
 
@@ -1713,19 +1927,15 @@ $Log:data.js,v $
 
         opt.format = "xml";
 
-        $.ajax({
-            type: "GET",
-            url: szUrl,
-            dataType: "xml",
-            success: function (data) {
+        _fetchXML(szUrl, opt)
+            .then(function (data) {
                 __this.__processGMLData(data, opt);
-            },
-            error: function (jqxhr, settings, exception) {
+            })
+            .catch(function (error) {
                 if ((typeof (opt) != "undefined") && opt.error) {
-                    opt.error(jqxhr, settings, exception);
+                    opt.error(error.message || error);
                 }
-            }
-        });
+            });
 
     };
 
@@ -1739,8 +1949,9 @@ $Log:data.js,v $
     Data.Feed.prototype.__processKMLData = function (data, opt) {
 
         if (opt.format == "xml") {
+            const root = _xmlRoot(data);
 
-            if ($(data).find('kml').length) {
+            if (_hasByLocalName(root, 'kml')) {
                 this.__parseKMLData(data, opt);
             } else {
                 _alert("feed not kml");
@@ -1759,24 +1970,33 @@ $Log:data.js,v $
         const __this = this;
 
         if (opt.format == "xml") {
-
-            const document = $(data).find('Document');
+            const root = _xmlRoot(data);
+            const documentEl = _firstByLocalName(root, 'Document');
 
             const dataA = [];
             let childNamesA = null;
 
-            document.find('Placemark').each(function () {
+            if (!documentEl) {
+                __this.__createDataTableObject(dataA, "kml", opt);
+                return;
+            }
 
-                const xdata = $(this).find('ExtendedData') || $(this);
+            const placemarks = _elementsByLocalName(documentEl, 'Placemark');
+
+            placemarks.forEach(function (placemark) {
+
+                const extendedData = _findDescendant(placemark, 'ExtendedData');
+                const xdata = extendedData || placemark;
 
                 // get item fieldnames from the first item of the channel
                 // ------------------------------------------------------
                 if (!childNamesA) {
                     childNamesA = [];
-                    xdata.find('Data').each(function () {
-                        childNamesA.push($(this).attr("name"));
+                    _elementsByLocalName(xdata, 'Data').forEach(function (dataEl) {
+                        childNamesA.push(_elementAttr(dataEl, "name"));
                     });
-                    if ($(this).find('Point').find('coordinates')) {
+                    const point = _findDescendant(placemark, 'Point');
+                    if (point && _findDescendant(point, 'coordinates')) {
                         childNamesA.push('KML.Point');
                     }
                     dataA.push(childNamesA);
@@ -1784,11 +2004,13 @@ $Log:data.js,v $
 
                 // make one item values
                 const row = [];
-                xdata.find('Data').each(function () {
-                    row.push($(this).find("value").text());
+                _elementsByLocalName(xdata, 'Data').forEach(function (dataEl) {
+                    row.push(_elementText(_findDescendant(dataEl, 'value')));
                 });
-                if ($(this).find('Point').find('coordinates')) {
-                    row.push($(this).find('Point').find('coordinates').text());
+                const point = _findDescendant(placemark, 'Point');
+                const coordinates = point ? _findDescendant(point, 'coordinates') : null;
+                if (coordinates) {
+                    row.push(_elementText(coordinates));
                 }
                 dataA.push(row);
 
@@ -1810,13 +2032,11 @@ $Log:data.js,v $
 
         if (opt.format == "xml") {
 
-            if ( typeof(data) === "string"){
-                parser = new DOMParser();
-                data = parser.parseFromString(data,"text/xml");
+            if (typeof(data) === "string") {
+                data = _parseXML(data);
             }
-            console.log(data);
-            console.log($(data).find('wfs\\:FeatureCollection, gml\\:FeatureCollection, FeatureCollection'));
-            if ($(data).find('wfs\\:FeatureCollection, gml\\:FeatureCollection, FeatureCollection').length) {
+            const root = _xmlRoot(data);
+            if (_hasByLocalName(root, 'FeatureCollection')) {
                 this.__parseGMLData(data, opt);
             } else {
                 _alert("feed not gml");
@@ -1836,11 +2056,12 @@ $Log:data.js,v $
         const __this = this;
 
         if (opt.format == "xml") {
+            const root = _xmlRoot(data);
 
             // Look for FeatureCollection (GML 3.x) or gml:FeatureCollection (GML 2.x)
-            const featureCollection = $(data).find('wfs\\:FeatureCollection, FeatureCollection').first();
+            const featureCollection = _firstByLocalName(root, 'FeatureCollection');
             
-            if (featureCollection.length === 0) {
+            if (!featureCollection) {
                 _alert("No FeatureCollection found in GML data");
                 return;
             }
@@ -1848,19 +2069,22 @@ $Log:data.js,v $
             const dataA = [];
             let childNamesA = null;
 
+            const members = _elementsByLocalName(featureCollection, ['member', 'featureMember', 'featureMembers']);
+
             // Process each feature member
-            featureCollection.find('wfs\\:member, gml\\:featureMember, featureMember, gml\\:featureMembers, featureMembers').each(function () {
+            members.forEach(function (member) {
                 
-                const feature = $(this).find('gml\\:*, *').first();
-                if (feature.length === 0) return;
+                const descendants = _descendantElements(member);
+                const feature = descendants.length ? descendants[0] : null;
+                if (!feature) return;
 
                 // Get fieldnames from the first feature
                 if (!childNamesA) {
                     childNamesA = [];
                     
                     // Add property columns
-                    feature.find('gml\\:*, *').each(function () {
-                        const tagName = $(this).prop('tagName');
+                    _descendantElements(feature).forEach(function (el) {
+                        const tagName = _elementTagName(el);
                         if (tagName && !tagName.match(/^(gml:)?(boundedBy|location|pos|coordinates|geometry|geometryProperty)$/i)) {
                             childNamesA.push(tagName.replace(/^gml:/, ''));
                         }
@@ -1875,20 +2099,19 @@ $Log:data.js,v $
                 // Extract feature data
                 const row = [];
                 
-                
                 // Add property values
-                feature.find('gml\\:*, *').each(function () {
-                    const tagName = $(this).prop('tagName');
+                _descendantElements(feature).forEach(function (el) {
+                    const tagName = _elementTagName(el);
                     if (tagName && !tagName.match(/^(gml:)?(boundedBy|location|pos|coordinates|geometry|geometryProperty)$/i)) {
-                        row.push($(this).text());
+                        row.push(_elementText(el));
                     }
                 });
                 
                 // Add geometry data
-                const geometry = feature.find('gml\\:Polygon').first();
-                if (geometry.length > 0) {
+                const geometry = _firstByLocalName(feature, 'Polygon');
+                if (geometry) {
                     let value = '{"type":"Polygon","coordinates":[['; 
-                    let coords = (geometry.text().split(" "));
+                    let coords = (_elementText(geometry).split(" "));
                     let start = 0;
                     
                     // Find the first valid number
@@ -1899,15 +2122,8 @@ $Log:data.js,v $
                         }
                     }
                     
-                    console.log("coords:", coords);
-                    console.log("start:", start);
-                    console.log("coords length:", coords.length);
-                    
                     // Check if we have enough coordinates
                     if (start < coords.length - 1) {
-                        console.log("coords[start]:", coords[start]);
-                        console.log("coords[start+1]:", coords[start+1]);
-                        
                         // Process coordinates in pairs
                         for (i = start; i < coords.length - 1; i += 2) {
                             if (coords[i] && coords[i+1] && 
@@ -1918,7 +2134,6 @@ $Log:data.js,v $
                     }
                     
                     value += ']]}';
-                    console.log("final value:", value);                    
                     row.push(value);
                 } else {
                     row.push('');
@@ -1947,14 +2162,15 @@ $Log:data.js,v $
     Data.Feed.prototype.__doJSONImport = function (szUrl, opt) {
 
         const __this = this;
-        $.get(szUrl,
-            function (data) {
+        _fetchJSON(szUrl, opt)
+            .then(function (data) {
                 __this.__processJsonData(data, opt);
-            }).fail(function (e) {
-            if ((typeof (opt) != "undefined") && opt.error) {
-                opt.error(e);
-            }
-        });
+            })
+            .catch(function (error) {
+                if ((typeof (opt) != "undefined") && opt.error) {
+                    opt.error(error);
+                }
+            });
 
     };
 
@@ -1970,20 +2186,15 @@ $Log:data.js,v $
         _LOG("__doJSONLinesImport: " + szUrl);
         const __this = this;
 
-        $.ajax({
-            type: "GET",
-            url: szUrl,
-            cache: opt.cache,
-            dataType: "text",
-            success: function (data) {
+        _fetchText(szUrl, opt)
+            .then(function (data) {
                 __this.__processJSONLinesData(data, opt);
-            },
-            error: function (jqxhr, settings, exception) {
+            })
+            .catch(function (error) {
                 if ((typeof (opt) != "undefined") && opt.error) {
-                    opt.error("\"" + szUrl + "\" " + exception);
+                    opt.error("\"" + szUrl + "\" " + (error.message || error));
                 }
-            }
-        });
+            });
     };
 
      /**
@@ -2351,14 +2562,15 @@ $Log:data.js,v $
     Data.Feed.prototype.__doGeoJSONImport = function (szUrl, opt) {
 
         const __this = this;
-        $.get(szUrl,
-            function (data) {
+        _fetchJSON(szUrl, opt)
+            .then(function (data) {
                 __this.__processGeoJsonData(data, opt);
-            }).fail(function (e) {
-            if ((typeof (opt) != "undefined") && opt.error) {
-                opt.error(e);
-            }
-        });
+            })
+            .catch(function (error) {
+                if ((typeof (opt) != "undefined") && opt.error) {
+                    opt.error(error);
+                }
+            });
 
     };
     /** 
@@ -2509,14 +2721,15 @@ $Log:data.js,v $
     Data.Feed.prototype.__doTopoJSONImport = function (szUrl, opt) {
 
         const __this = this;
-        $.get(szUrl,
-            function (data) {
+        _fetchJSON(szUrl, opt)
+            .then(function (data) {
                 __this.__processTopoJsonData(data, opt);
-            }).fail(function (e) {
-            if ((typeof (opt) != "undefined") && opt.error) {
-                opt.error(e);
-            }
-        });
+            })
+            .catch(function (error) {
+                if ((typeof (opt) != "undefined") && opt.error) {
+                    opt.error(error);
+                }
+            });
 
     };
     /** 
@@ -7276,16 +7489,11 @@ $Log:data.js,v $
                             if (this.__szSelectionValue == "*") {
                                 result = this.__szValue.length;
                             } else {
-                                // Escape regex special characters in the value
-                                const pattern = this.__szSelectionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                                const regex = new RegExp(pattern, "i");
-                                result = regex.test(this.__szValue);
+                                result = __safeSqlLikeMatch(this.__szValue, this.__szSelectionValue, false);
                             }
                         } else
                         if (this.__szSelectionOp == "NOT") {
-                            const pattern = this.__szSelectionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                            const regex = new RegExp(pattern, "i");
-                            result = !regex.test(this.__szValue);
+                            result = !__safeRegexMatch(this.__szValue, this.__szSelectionValue, false);
                         } else
                         if (this.__szSelectionOp == "IN") {
                             // Support both syntaxes:
@@ -7316,9 +7524,7 @@ $Log:data.js,v $
                                 (nValue <= Number(this.__szSelectionValue2)));
                         } else {
                             // default operator
-                            const pattern = this.__szSelectionValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                            const regex = new RegExp(pattern, "i");
-                            result = regex.test(this.__szValue);
+                            result = __safeRegexMatch(this.__szValue, this.__szSelectionValue, false);
                         }
                         if (this.__szCombineOp == "AND") {
                             allResult = (allResult && result);
