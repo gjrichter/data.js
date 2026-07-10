@@ -671,7 +671,9 @@ $Log:data.js,v $
      *								   <tr><td><b>"csv"</b></td><td>the source is 'plain text' formatted as Comma Separated Values<br>delimiter supported: , and ;</td></tr>
      *								   <tr><td><b>"json"</b></td><td>the source is JSON (Javascript Object Notation)</td></tr>
      *								   <tr><td><b>"geojson"</b></td><td>the source is a JSON object formatted in <a href="https://geojson.org/" target="_blank">GeoJson</a></td></tr>
-     *								   <tr><td><b>"parquet"</b></td><td>the source is a Parquet or GeoParquet file (using DuckDB WASM, converted to GeoJSON)</td></tr>
+     *								   <tr><td><b>"parquet"</b></td><td>the source is a Parquet or GeoParquet file (using DuckDB WASM, converted to GeoJSON);<br>
+     *								   with the optional <b>bbox</b> option ([minX, minY, maxX, maxY], EPSG:4326) a remote URL is queried
+     *								   directly via HTTP range requests (only matching row groups are downloaded)</td></tr>
      *								   <tr><td><b>"gpkg"</b></td><td>the source is a GeoPackage file (using DuckDB WASM spatial extension, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"rss"</b></td><td>the source is an xml rss feed</td></tr>
      *								   <tr><td><b>"kml"</b></td><td>the source is in Keyhole Markup Language</td></tr>
@@ -823,7 +825,9 @@ $Log:data.js,v $
      *								   <tr><td><b>"csv"</b></td><td>the source is 'plain text' formatted as Comma Separated Values<br>delimiter supported: , and ;</td></tr>
      *								   <tr><td><b>"json"</b></td><td>the source is JSON (Javascript Object Notation)</td></tr>
      *								   <tr><td><b>"geojson"</b></td><td>the source is a JSON object formatted in <a href="https://geojson.org/" target="_blank">GeoJson</a></td></tr>
-     *								   <tr><td><b>"parquet"</b></td><td>the source is a Parquet o GeoParquet file (using DuckDB WASM, converted to GeoJSON)</td></tr>
+     *								   <tr><td><b>"parquet"</b></td><td>the source is a Parquet o GeoParquet file (using DuckDB WASM, converted to GeoJSON);<br>
+     *								   with the optional <b>bbox</b> option ([minX, minY, maxX, maxY], EPSG:4326) a remote URL is queried
+     *								   directly via HTTP range requests (only matching row groups are downloaded)</td></tr>
      *								   <tr><td><b>"gpkg"</b></td><td>the source is a GeoPackage file (using DuckDB WASM spatial extension, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"flatgeobuf"</b> or <b>"fgb"</b></td><td>the source is a FlatGeobuf file (binary geospatial format, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"geobuf"</b> or <b>"pbf"</b></td><td>the source is a Geobuf file (Protocol Buffer geospatial format, converted to GeoJSON)</td></tr>
@@ -859,7 +863,14 @@ $Log:data.js,v $
      *								   <tr><td><b>"json"</b></td><td>the source is JSON (Javascript Object Notation)</td></tr>
      *								   <tr><td><b>"geojson"</b></td><td>the source is a JSON object formatted in <a href="https://geojson.org/" target="_blank">GeoJson</a></td></tr>
      *								   <tr><td><b>"geoparquet"</b></td><td>the source is a GeoParquet file (using DuckDB WASM, converted to GeoJSON)</td></tr>
-     *								   <tr><td><b>"parquet"</b></td><td>the source is a Parquet file (using DuckDB WASM)</td></tr>
+     *								   <tr><td><b>"parquet"</b></td><td>the source is a Parquet file (using DuckDB WASM)<br>
+     *								   optional <b>bbox</b>: [minX, minY, maxX, maxY] (EPSG:4326) - query the remote URL directly via
+     *								   HTTP range requests, downloading only row groups intersecting the bbox (needs a GeoParquet
+     *								   bbox helper column); the source CRS is auto-detected from the GeoParquet metadata and
+     *								   reprojected with proj4js when needed.<br>
+     *								   further options with bbox: <b>columns</b> (array of column names to select),
+     *								   <b>crs</b> ("EPSG:nnnn" source CRS override), <b>proj4</b> (proj4 definition string),
+     *								   <b>maxRows</b> (abort with error when the bbox selects more rows)</td></tr>
      *								   <tr><td><b>"gpkg"</b></td><td>the source is a GeoPackage file (using DuckDB WASM spatial extension, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"flatgeobuf"</b> or <b>"fgb"</b></td><td>the source is a FlatGeobuf file (binary geospatial format, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"geobuf"</b> or <b>"pbf"</b></td><td>the source is a Geobuf file (Protocol Buffer geospatial format, converted to GeoJSON)</td></tr>
@@ -2803,9 +2814,18 @@ $Log:data.js,v $
      */
     Data.Feed.prototype.__doParquetImport = function (szUrl, opt) {
         _LOG("__doParquetImport: " + szUrl);
-        
+
         const __this = this;
-        
+
+        // If a spatial filter (bbox) is provided, query the remote file directly with
+        // DuckDB WASM (HTTP range requests, row group pruning on bbox helper columns)
+        // instead of downloading the entire file first.
+        if (opt && opt.bbox) {
+            _LOG("Bbox filter detected - using remote parquet query mode");
+            __this.__doRemoteParquetBboxImport(szUrl, opt);
+            return;
+        }
+
         // Use Fetch API instead of jQuery AJAX for better binary handling
         _LOG("Attempting to load parquet file using Fetch API...");
         
@@ -3026,7 +3046,7 @@ $Log:data.js,v $
                 .finally(function() {
                     // Clean up the temporary file
                     try {
-                        window.duckdb.db.dropFile(tempFileName);
+                        if (tempFileName) window.duckdb.db.dropFile(tempFileName);
                     } catch (cleanupError) {
                         console.warn("Warning: Could not clean up temporary file:", cleanupError);
                     }
@@ -3226,6 +3246,12 @@ $Log:data.js,v $
             cursor += 8;
             coord.push(view.getFloat64(cursor, littleEndian)); // y
             cursor += 8;
+            if (this.__geomTransform) {
+                // optional source-CRS -> lon/lat reprojection (set by the remote parquet bbox path)
+                const t = this.__geomTransform(coord[0], coord[1]);
+                coord[0] = t[0];
+                coord[1] = t[1];
+            }
             if (hasZ) {
                 coord.push(view.getFloat64(cursor, littleEndian)); // z
                 cursor += 8;
@@ -3770,7 +3796,7 @@ $Log:data.js,v $
                         
                         // Clean up temp file
                         try {
-                            window.duckdb.db.dropFile(tempFileName);
+                            if (tempFileName) window.duckdb.db.dropFile(tempFileName);
                         } catch (cleanupError) {
                             console.warn("Warning: Could not clean up temporary file:", cleanupError);
                         }
@@ -3792,7 +3818,7 @@ $Log:data.js,v $
                         
                         // Clean up temp file
                         try {
-                            window.duckdb.db.dropFile(tempFileName);
+                            if (tempFileName) window.duckdb.db.dropFile(tempFileName);
                         } catch (cleanupError) {
                             console.warn("Warning: Could not clean up temporary file:", cleanupError);
                         }
@@ -3830,7 +3856,7 @@ $Log:data.js,v $
             
             // Clean up temp file
             try {
-                window.duckdb.db.dropFile(tempFileName);
+                if (tempFileName) window.duckdb.db.dropFile(tempFileName);
             } catch (cleanupError) {
                 console.warn("Warning: Could not clean up temporary file:", cleanupError);
             }
@@ -3933,7 +3959,7 @@ $Log:data.js,v $
             
             // Clean up the temporary file
             try {
-                window.duckdb.db.dropFile(tempFileName);
+                if (tempFileName) window.duckdb.db.dropFile(tempFileName);
             } catch (cleanupError) {
                 console.warn("Warning: Could not clean up temporary file:", cleanupError);
             }
@@ -3946,7 +3972,7 @@ $Log:data.js,v $
             
             // Clean up the temporary file
             try {
-                window.duckdb.db.dropFile(tempFileName);
+                if (tempFileName) window.duckdb.db.dropFile(tempFileName);
             } catch (cleanupError) {
                 console.warn("Warning: Could not clean up temporary file:", cleanupError);
             }
@@ -4049,9 +4075,50 @@ $Log:data.js,v $
      */
     Data.Feed.prototype.__loadDuckDBAndProcess = function (parquetBuffer, opt) {
         const __this = this;
-        
+        __this.__loadDuckDB(opt, function () {
+            __this.__processParquetWithDuckDB(parquetBuffer, opt);
+        });
+    };
+
+    /**
+     * __ensureDuckDB
+     * Ensures a working DuckDB WASM instance/connection exists, then calls onReady.
+     * Reuses the global window.duckdb singleton if its connection is still valid.
+     * @param opt options object (for opt.error reporting)
+     * @param onReady callback invoked when window.duckdb.conn is usable
+     */
+    Data.Feed.prototype.__ensureDuckDB = function (opt, onReady) {
+        const __this = this;
+        if (typeof window.duckdb !== 'undefined' && window.duckdbLoaded && window.duckdb.conn) {
+            window.duckdb.conn.query('SELECT 1 as test')
+                .then(function () {
+                    onReady();
+                })
+                .catch(function (error) {
+                    console.warn("⚠️ Existing DuckDB connection is invalid:", error.message);
+                    __this.__cleanupDuckDB();
+                    __this.__loadDuckDB(opt, onReady);
+                });
+        } else {
+            __this.__loadDuckDB(opt, onReady);
+        }
+    };
+
+    /**
+     * __loadDuckDB
+     * Loads the DuckDB WASM module (MVP bundle) and calls onReady once
+     * window.duckdb = {module, worker, db, conn} is available.
+     * @param opt options object (for opt.error reporting)
+     * @param onReady callback invoked when DuckDB is ready
+     */
+    Data.Feed.prototype.__loadDuckDB = function (opt, onReady) {
+        const __this = this;
+
         // Load DuckDB WASM module dynamically
         _LOG("Loading DuckDB WASM module dynamically...");
+
+        // Clear a stale load error from a previous failed attempt
+        window.duckdbLoadError = undefined;
         
         // Now load DuckDB WASM
         const script = document.createElement('script');
@@ -4150,7 +4217,7 @@ $Log:data.js,v $
             if (window.duckdbLoaded && window.duckdb) {
                 clearInterval(checkLoaded);
                 _LOG("DuckDB WASM module loaded successfully");
-                __this.__processParquetWithDuckDB(parquetBuffer, opt);
+                onReady();
             } else if (window.duckdbLoadError) {
                 clearInterval(checkLoaded);
                 _LOG("Failed to load DuckDB WASM module: " + window.duckdbLoadError);
@@ -4175,6 +4242,459 @@ $Log:data.js,v $
             }
         }, 15000); // 15 second timeout
     };
+
+    // ============================================================================
+    // REMOTE PARQUET BBOX LOADING (HTTP range requests, no full download)
+    // ============================================================================
+
+    /**
+     * Cache of remote parquet metadata probes (schema, bbox/geometry columns, CRS),
+     * keyed by URL, so viewport re-queries skip the DESCRIBE/kv-metadata round trips.
+     */
+    var __remoteParquetMetaCache = {};
+
+    /**
+     * proj4 definitions for common projected CRS of European GeoParquet datasets.
+     * EPSG:4326 / 4258 / OGC:CRS84 need no transform; others can be supplied via
+     * opt.crs ("EPSG:nnnn") or opt.proj4 (proj4 definition string).
+     */
+    var __proj4Defs = {
+        3035: '+proj=laea +lat_0=52 +lon_0=10 +x_0=4321000 +y_0=3210000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+        3857: '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +k=1 +units=m +nadgrids=@null +wktext +no_defs',
+        2154: '+proj=lcc +lat_1=49 +lat_2=44 +lat_0=46.5 +lon_0=3 +x_0=700000 +y_0=6600000 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+        25832: '+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+        25833: '+proj=utm +zone=33 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs',
+        32632: '+proj=utm +zone=32 +datum=WGS84 +units=m +no_defs',
+        32633: '+proj=utm +zone=33 +datum=WGS84 +units=m +no_defs'
+    };
+
+    /**
+     * __doRemoteParquetBboxImport
+     * Queries a remote parquet URL directly with DuckDB WASM, filtered by opt.bbox
+     * (map coordinates, EPSG:4326, [minX, minY, maxX, maxY]). DuckDB reads the file
+     * over HTTP range requests and prunes row groups via the GeoParquet bbox helper
+     * column, so only viewport-relevant data is downloaded.
+     * Options: opt.columns (array - restrict SELECT), opt.crs / opt.proj4 (source CRS
+     * override), opt.maxRows (row count guard).
+     * @param szUrl remote parquet file url
+     * @param opt options object with opt.bbox
+     */
+    Data.Feed.prototype.__doRemoteParquetBboxImport = function (szUrl, opt) {
+        const __this = this;
+
+        _LOG("__doRemoteParquetBboxImport: " + szUrl);
+        Data.log("🌐 Remote parquet bbox mode - querying via HTTP range requests");
+
+        __this.__ensureDuckDB(opt, function () {
+            __this.__probeRemoteParquet(szUrl, opt, function (meta) {
+                if (!meta.bboxColumn) {
+                    Data.log("⚠️ No bbox helper column in remote parquet - falling back to full download");
+                    delete opt.bbox;
+                    __this.__doParquetImport(szUrl, opt);
+                    return;
+                }
+                __this.__prepareCrsTransform(meta, opt, function (proj) {
+                    __this.__queryRemoteParquetBbox(szUrl, opt, meta, proj);
+                });
+            });
+        });
+    };
+
+    /**
+     * __probeRemoteParquet
+     * Reads schema and GeoParquet 'geo' key-value metadata of a remote parquet file
+     * (footer reads only - a few KB) and detects the bbox helper column, the geometry
+     * column and the source CRS. Results are cached per URL.
+     * @param szUrl remote parquet file url
+     * @param opt options object
+     * @param callback function(meta) called with the probe result
+     */
+    Data.Feed.prototype.__probeRemoteParquet = function (szUrl, opt, callback) {
+        const __this = this;
+
+        if (__remoteParquetMetaCache[szUrl]) {
+            callback(__remoteParquetMetaCache[szUrl]);
+            return;
+        }
+
+        // DuckDB WASM (32 bit) cannot address remote files >= 2 GB - it dies with an
+        // uncatchable wasm exception ('_setThrew is not defined') after a long stall,
+        // so check the file size up front and fail fast with a clear message.
+        const MAX_REMOTE_BYTES = 2147483648; // 2^31
+        fetch(szUrl, { method: 'HEAD' })
+            .then(function (res) {
+                const size = Number(res.headers.get('content-length'));
+                if (isFinite(size) && size >= MAX_REMOTE_BYTES) {
+                    const msg = "Remote parquet file is " + (size / 1073741824).toFixed(2) +
+                        " GB - DuckDB WASM cannot read remote files >= 2 GB; use a smaller partition of the data";
+                    _LOG(msg);
+                    if (opt && opt.error) {
+                        opt.error(msg);
+                    } else {
+                        _alert(msg);
+                    }
+                    return;
+                }
+                __this.__probeRemoteParquetSchema(szUrl, opt, callback);
+            })
+            .catch(function () {
+                // HEAD not permitted or failed - proceed and let DuckDB try
+                __this.__probeRemoteParquetSchema(szUrl, opt, callback);
+            });
+    };
+
+    /**
+     * __probeRemoteParquetSchema
+     * Second stage of __probeRemoteParquet: DESCRIBE + GeoParquet kv metadata.
+     * @param szUrl remote parquet file url
+     * @param opt options object
+     * @param callback function(meta) called with the probe result
+     */
+    Data.Feed.prototype.__probeRemoteParquetSchema = function (szUrl, opt, callback) {
+        const __this = this;
+
+        const conn = window.duckdb.conn;
+        const safeUrl = szUrl.replace(/'/g, "''");
+        const meta = { columns: [], columnTypes: {}, geometryColumn: null, bboxColumn: null, crs: null };
+
+        conn.query(`DESCRIBE SELECT * FROM read_parquet('${safeUrl}')`)
+            .then(function (res) {
+                res.toArray().map(function (r) { return Object.fromEntries(r); }).forEach(function (r) {
+                    meta.columns.push(r.column_name);
+                    meta.columnTypes[r.column_name] = String(r.column_type);
+                });
+
+                // bbox helper column: STRUCT with xmin/ymin/xmax/ymax fields
+                for (const name of meta.columns) {
+                    const t = meta.columnTypes[name].toLowerCase();
+                    if (t.indexOf('struct') === 0 && t.includes('xmin') && t.includes('ymin') &&
+                        t.includes('xmax') && t.includes('ymax')) {
+                        meta.bboxColumn = name;
+                        break;
+                    }
+                }
+
+                // geometry column: name heuristic (same list as __detectColumnTypes)
+                const geoNames = ['geometry', 'geom', 'the_geom', 'wkb_geometry', 'shape'];
+                for (const name of meta.columns) {
+                    if (geoNames.includes(name.toLowerCase())) {
+                        meta.geometryColumn = name;
+                        break;
+                    }
+                }
+
+                // GeoParquet 'geo' metadata: authoritative primary column, covering (bbox) and CRS
+                conn.query(`SELECT decode(value) AS v FROM parquet_kv_metadata('${safeUrl}') WHERE decode(key) = 'geo'`)
+                    .then(function (kvres) {
+                        try {
+                            const kv = kvres.toArray().map(function (r) { return Object.fromEntries(r); });
+                            if (kv.length && kv[0].v) {
+                                const geo = JSON.parse(kv[0].v);
+                                const primary = geo.primary_column || meta.geometryColumn;
+                                if (primary && meta.columns.includes(primary)) {
+                                    meta.geometryColumn = primary;
+                                }
+                                const colMeta = geo.columns && geo.columns[primary];
+                                if (colMeta) {
+                                    if (colMeta.covering && colMeta.covering.bbox && colMeta.covering.bbox.xmin) {
+                                        const bb = colMeta.covering.bbox.xmin[0]; // path like ["bbox","xmin"]
+                                        if (meta.columns.includes(bb)) {
+                                            meta.bboxColumn = bb;
+                                        }
+                                    }
+                                    meta.crs = __this.__extractEpsgFromCrs(colMeta.crs);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("⚠️ Could not parse GeoParquet 'geo' metadata:", e);
+                        }
+                        __remoteParquetMetaCache[szUrl] = meta;
+                        callback(meta);
+                    })
+                    .catch(function (e) {
+                        // kv metadata not readable - not fatal, CRS falls back to opt.crs / none
+                        console.warn("⚠️ parquet_kv_metadata query failed:", e);
+                        __remoteParquetMetaCache[szUrl] = meta;
+                        callback(meta);
+                    });
+            })
+            .catch(function (error) {
+                const msg = "Remote parquet probe failed for '" + szUrl + "': " + (error && error.message ? error.message : error);
+                _LOG(msg);
+                if (opt && opt.error) {
+                    opt.error(msg);
+                } else {
+                    _alert(msg);
+                }
+            });
+    };
+
+    /**
+     * __extractEpsgFromCrs
+     * Extracts an EPSG code from a GeoParquet crs entry (PROJJSON object or
+     * "EPSG:nnnn" string). Returns null when no transform is needed (missing crs,
+     * OGC:CRS84, EPSG:4326/4258), a number for a known EPSG code, or the CRS name
+     * string when the code cannot be determined.
+     * @param crs PROJJSON object, string, or undefined
+     */
+    Data.Feed.prototype.__extractEpsgFromCrs = function (crs) {
+        if (!crs) {
+            return null; // GeoParquet default is OGC:CRS84 (lon/lat)
+        }
+        if (typeof crs === 'string') {
+            const m = crs.match(/EPSG[:\s]*(\d+)/i);
+            if (m) {
+                const code = Number(m[1]);
+                return (code === 4326 || code === 4258) ? null : code;
+            }
+            return (crs.toUpperCase().indexOf('CRS84') >= 0) ? null : crs;
+        }
+        if (typeof crs === 'object') {
+            if (crs.id && crs.id.code) {
+                const code = Number(crs.id.code);
+                if (String(crs.id.authority).toUpperCase() === 'OGC' && String(crs.id.code).toUpperCase() === 'CRS84') {
+                    return null;
+                }
+                return (code === 4326 || code === 4258) ? null : code;
+            }
+            if (crs.name && crs.name.toUpperCase().indexOf('CRS84') >= 0) {
+                return null;
+            }
+            if (crs.type === 'GeographicCRS') {
+                return null; // geographic lon/lat, close enough for display purposes
+            }
+            return crs.name || 'unknown';
+        }
+        return null;
+    };
+
+    /**
+     * __ensureProj4
+     * Loads proj4js from CDN on demand (window.proj4).
+     * @param opt options object (for opt.error reporting)
+     * @param onReady callback invoked when window.proj4 is available
+     */
+    Data.Feed.prototype.__ensureProj4 = function (opt, onReady) {
+        if (window.proj4) {
+            onReady();
+            return;
+        }
+        Data.log("📦 Loading proj4js for coordinate transformation...");
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/proj4@2/dist/proj4.js';
+        script.onload = function () {
+            _LOG("proj4js loaded");
+            onReady();
+        };
+        script.onerror = function () {
+            const msg = "Failed to load proj4js from CDN";
+            _LOG(msg);
+            if (opt && opt.error) {
+                opt.error(msg);
+            } else {
+                _alert(msg);
+            }
+        };
+        document.head.appendChild(script);
+    };
+
+    /**
+     * __prepareCrsTransform
+     * Resolves the source CRS (opt.proj4 > opt.crs > GeoParquet metadata) and calls
+     * back with a proj4 converter (forward: lon/lat -> source CRS, inverse: back),
+     * or null when no transform is needed.
+     * @param meta probe result from __probeRemoteParquet
+     * @param opt options object
+     * @param callback function(projOrNull)
+     */
+    Data.Feed.prototype.__prepareCrsTransform = function (meta, opt, callback) {
+        const __this = this;
+
+        let def = null;
+        let crs = meta.crs;
+
+        if (opt.proj4) {
+            def = opt.proj4;
+        } else if (opt.crs) {
+            crs = __this.__extractEpsgFromCrs(opt.crs);
+        }
+
+        if (!def) {
+            if (crs === null) {
+                callback(null); // lon/lat source, no transform
+                return;
+            }
+            if (typeof crs === 'number' && __proj4Defs[crs]) {
+                def = __proj4Defs[crs];
+            } else {
+                const msg = "Unsupported source CRS '" + crs + "' - pass opt.crs ('EPSG:nnnn') or opt.proj4 (definition string)";
+                _LOG(msg);
+                if (opt && opt.error) {
+                    opt.error(msg);
+                } else {
+                    _alert(msg);
+                }
+                return;
+            }
+        }
+
+        __this.__ensureProj4(opt, function () {
+            try {
+                const proj = window.proj4(def);
+                Data.log("🧭 Source CRS " + (typeof crs === 'number' ? "EPSG:" + crs : "(custom)") + " - transforming bbox and geometries");
+                callback(proj);
+            } catch (e) {
+                const msg = "proj4 could not initialize CRS definition: " + e.message;
+                if (opt && opt.error) {
+                    opt.error(msg);
+                } else {
+                    _alert(msg);
+                }
+            }
+        });
+    };
+
+    /**
+     * __queryRemoteParquetBbox
+     * Builds and runs the bbox-filtered SELECT against the remote parquet URL and
+     * delivers the result through the standard streaming dataset machinery.
+     * @param szUrl remote parquet file url
+     * @param opt options object with opt.bbox (EPSG:4326 [minX, minY, maxX, maxY])
+     * @param meta probe result from __probeRemoteParquet
+     * @param proj proj4 converter for the source CRS, or null
+     */
+    Data.Feed.prototype.__queryRemoteParquetBbox = function (szUrl, opt, meta, proj) {
+        const __this = this;
+        const conn = window.duckdb.conn;
+        const safeUrl = szUrl.replace(/'/g, "''");
+
+        const fail = function (msg) {
+            _LOG(msg);
+            if (opt && opt.error) {
+                opt.error(msg);
+            } else {
+                _alert(msg);
+            }
+        };
+
+        // --- bbox in source CRS ---
+        const bbox = Array.isArray(opt.bbox) ? opt.bbox.map(Number) : [];
+        if (bbox.length !== 4 || !bbox.every(isFinite)) {
+            fail("Invalid bbox option (expected [minX, minY, maxX, maxY]): " + JSON.stringify(opt.bbox));
+            return;
+        }
+        let qb = bbox;
+        if (proj) {
+            // transform all 4 corners and take the envelope (projections curve straight edges)
+            const corners = [
+                proj.forward([bbox[0], bbox[1]]),
+                proj.forward([bbox[2], bbox[1]]),
+                proj.forward([bbox[2], bbox[3]]),
+                proj.forward([bbox[0], bbox[3]])
+            ];
+            const xs = corners.map(function (c) { return c[0]; });
+            const ys = corners.map(function (c) { return c[1]; });
+            qb = [Math.min.apply(null, xs), Math.min.apply(null, ys),
+                  Math.max.apply(null, xs), Math.max.apply(null, ys)];
+        }
+
+        // --- column list ---
+        const quoteIdent = function (name) { return '"' + String(name).replace(/"/g, '""') + '"'; };
+        const isListType = function (name) { return meta.columnTypes[name].indexOf('[]') >= 0; };
+
+        let colNames;
+        if (Array.isArray(opt.columns) && opt.columns.length) {
+            colNames = opt.columns.filter(function (c) {
+                if (meta.columns.includes(c)) {
+                    return true;
+                }
+                console.warn("⚠️ Requested column not in remote parquet schema, skipped: " + c);
+                return false;
+            });
+            if (meta.geometryColumn && !colNames.includes(meta.geometryColumn)) {
+                colNames.push(meta.geometryColumn);
+            }
+        } else {
+            colNames = meta.columns.filter(function (c) {
+                return c !== meta.bboxColumn && !isListType(c);
+            });
+        }
+        if (!colNames.length) {
+            fail("No valid columns to select from remote parquet");
+            return;
+        }
+
+        const selects = colNames.map(function (c) {
+            const qc = quoteIdent(c);
+            const t = meta.columnTypes[c].toLowerCase();
+            if (t.indexOf('decimal') === 0) {
+                return 'CAST(' + qc + ' AS DOUBLE) AS ' + qc;
+            }
+            if (isListType(c)) {
+                return 'CAST(' + qc + ' AS VARCHAR) AS ' + qc;
+            }
+            // NOTE: never hex()/encode the geometry BLOB here - it crashes the MVP wasm bundle;
+            // the raw BLOB arrives as Uint8Array and is parsed by __convertGeometryToGeoJSON.
+            return qc;
+        });
+
+        const bb = quoteIdent(meta.bboxColumn);
+        const where = 'WHERE ' + bb + '.xmax >= ' + qb[0] + ' AND ' + bb + '.xmin <= ' + qb[2] +
+                      ' AND ' + bb + '.ymax >= ' + qb[1] + ' AND ' + bb + '.ymin <= ' + qb[3];
+        const from = "FROM read_parquet('" + safeUrl + "') ";
+
+        // --- optional row count guard ---
+        const runQuery = function () {
+            const sql = 'SELECT ' + selects.join(', ') + ' ' + from + where;
+            _LOG("Remote parquet query: " + sql);
+            const t0 = Date.now();
+            conn.query(sql)
+                .then(function (result) {
+                    const rows = result.toArray().map(function (row) { return Object.fromEntries(row); });
+                    Data.log("✅ Remote parquet bbox query: " + rows.length.toLocaleString() + " rows in " + (Date.now() - t0) + " ms");
+
+                    const columns = result.schema.fields.map(function (f) { return f.name; });
+                    if (!rows.length) {
+                        __this.__createDataTableObject([columns], "parquet", opt);
+                        return;
+                    }
+
+                    const columnTypes = __this.__detectColumnTypes(result.schema);
+                    if (meta.geometryColumn) {
+                        const gi = columns.indexOf(meta.geometryColumn);
+                        if (gi >= 0 && columnTypes) {
+                            columnTypes[gi] = 'geometry';
+                        }
+                    }
+
+                    // reproject geometry coordinates (source CRS -> lon/lat) during WKB parsing
+                    __this.__geomTransform = proj ? function (x, y) { return proj.inverse([x, y]); } : null;
+
+                    __this.__processStreamingDataset(rows, columns, columnTypes, null, opt);
+                })
+                .catch(function (error) {
+                    fail("Remote parquet bbox query failed: " + (error && error.message ? error.message : error));
+                });
+        };
+
+        if (opt.maxRows) {
+            conn.query('SELECT count(*) AS n ' + from + where)
+                .then(function (res) {
+                    const n = Number(res.toArray().map(function (r) { return Object.fromEntries(r); })[0].n);
+                    if (n > opt.maxRows) {
+                        fail("bbox selects " + n.toLocaleString() + " rows (limit " + opt.maxRows.toLocaleString() + ") - zoom in or raise maxRows");
+                        return;
+                    }
+                    runQuery();
+                })
+                .catch(function (error) {
+                    fail("Remote parquet count query failed: " + (error && error.message ? error.message : error));
+                });
+        } else {
+            runQuery();
+        }
+    };
+
     /**
      * __processWithDuckDB
      * helper method to process parquet data using DuckDB WASM
@@ -4606,7 +5126,7 @@ $Log:data.js,v $
                 .finally(function() {
                     // Clean up the temporary file
                     try {
-                        window.duckdb.db.dropFile(tempFileName);
+                        if (tempFileName) window.duckdb.db.dropFile(tempFileName);
                         console.log("🧹 Cleaned up temporary file");
                     } catch (cleanupError) {
                         console.warn("Warning: Could not clean up temporary file:", cleanupError);
@@ -5517,7 +6037,7 @@ $Log:data.js,v $
                         
                         // Clean up the temporary file
                         try {
-                            window.duckdb.db.dropFile(tempFileName);
+                            if (tempFileName) window.duckdb.db.dropFile(tempFileName);
                             console.log("🧹 Cleaned up temporary GeoPackage file");
                         } catch (cleanupError) {
                             console.warn("Warning: Could not clean up temporary file:", cleanupError);
@@ -5533,7 +6053,7 @@ $Log:data.js,v $
                         
                         // Clean up the temporary file
                         try {
-                            window.duckdb.db.dropFile(tempFileName);
+                            if (tempFileName) window.duckdb.db.dropFile(tempFileName);
                         } catch (cleanupError) {
                             console.warn("Warning: Could not clean up temporary file:", cleanupError);
                         }
