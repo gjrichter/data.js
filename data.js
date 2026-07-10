@@ -7310,7 +7310,7 @@ $Log:data.js,v $
          * @return itself
          */
         setArray: function (dataA) {
-            if (dataA.length < 2) {
+            if (!dataA || dataA.length < 1) {
                 return this;
             }
             // first row of data => object.fields
