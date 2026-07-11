@@ -4188,12 +4188,23 @@ $Log:data.js,v $
                 
                 // Create connection
                 const conn = await db.connect();
-                
+
                 console.log("✅ DuckDB WASM initialized successfully");
                 console.log("DuckDB connection object type:", typeof conn);
                 console.log("DuckDB connection methods:", Object.getOwnPropertyNames(conn));
                 console.log("DuckDB connection constructor:", conn.constructor.name);
-                
+
+                // Load the httpfs extension so read_parquet(url) does true HTTP range
+                // requests (footer + only the needed column/row-group byte ranges)
+                // instead of the default protocol handler's full-file download.
+                try {
+                    await conn.query("INSTALL httpfs;");
+                    await conn.query("LOAD httpfs;");
+                    console.log("✅ httpfs extension loaded (enables ranged remote parquet reads)");
+                } catch (httpfsError) {
+                    console.warn("⚠️ Could not load httpfs extension - remote parquet reads will fall back to full-file downloads:", httpfsError);
+                }
+
                 // Store references globally with worker reference for cleanup
                 window.duckdb = {
                     module: duckdb,
@@ -4344,8 +4355,46 @@ $Log:data.js,v $
     };
 
     /**
+     * Arrow Type ids relevant to schema detection (see apache-arrow's Type enum).
+     * Used to read the schema off a "LIMIT 1" query result instead of running
+     * DESCRIBE, which is dramatically slower on large remote files (DESCRIBE
+     * makes DuckDB gather per-row-group statistics across the whole file - a
+     * "LIMIT 1" query only has to touch the first row group).
+     */
+    var __ARROW_TYPE_BINARY = 4;
+    var __ARROW_TYPE_DECIMAL = 7;
+    var __ARROW_TYPE_LIST = 12;
+    var __ARROW_TYPE_STRUCT = 13;
+    var __ARROW_TYPE_FIXED_SIZE_LIST = 16;
+
+    /**
+     * __arrowFieldTypeString
+     * Builds a lowercase type string for an Arrow field compatible with the
+     * column-type conventions used elsewhere in this file (decimal(p,s), list
+     * types containing "[]", struct(...)).
+     * @param field Arrow Field (from a DuckDB WASM query result's schema.fields)
+     */
+    function __arrowFieldTypeString(field) {
+        const t = field.type;
+        switch (t.typeId) {
+            case __ARROW_TYPE_DECIMAL:
+                return 'decimal(' + (t.precision || 0) + ',' + (t.scale || 0) + ')';
+            case __ARROW_TYPE_LIST:
+            case __ARROW_TYPE_FIXED_SIZE_LIST:
+                return 'list[]';
+            case __ARROW_TYPE_STRUCT:
+                return 'struct(' + (t.children || []).map(function (c) { return c.name; }).join(',') + ')';
+            case __ARROW_TYPE_BINARY:
+                return 'blob';
+            default:
+                return String(t).toLowerCase();
+        }
+    }
+
+    /**
      * __probeRemoteParquetSchema
-     * Second stage of __probeRemoteParquet: DESCRIBE + GeoParquet kv metadata.
+     * Second stage of __probeRemoteParquet: schema (via a cheap "LIMIT 1" query,
+     * not DESCRIBE) + GeoParquet kv metadata.
      * @param szUrl remote parquet file url
      * @param opt options object
      * @param callback function(meta) called with the probe result
@@ -4357,22 +4406,20 @@ $Log:data.js,v $
         const safeUrl = szUrl.replace(/'/g, "''");
         const meta = { columns: [], columnTypes: {}, geometryColumn: null, bboxColumn: null, crs: null };
 
-        conn.query(`DESCRIBE SELECT * FROM read_parquet('${safeUrl}')`)
+        conn.query(`SELECT * FROM read_parquet('${safeUrl}') LIMIT 1`)
             .then(function (res) {
-                res.toArray().map(function (r) { return Object.fromEntries(r); }).forEach(function (r) {
-                    meta.columns.push(r.column_name);
-                    meta.columnTypes[r.column_name] = String(r.column_type);
-                });
+                res.schema.fields.forEach(function (field) {
+                    meta.columns.push(field.name);
+                    meta.columnTypes[field.name] = __arrowFieldTypeString(field);
 
-                // bbox helper column: STRUCT with xmin/ymin/xmax/ymax fields
-                for (const name of meta.columns) {
-                    const t = meta.columnTypes[name].toLowerCase();
-                    if (t.indexOf('struct') === 0 && t.includes('xmin') && t.includes('ymin') &&
-                        t.includes('xmax') && t.includes('ymax')) {
-                        meta.bboxColumn = name;
-                        break;
+                    // bbox helper column: STRUCT with exactly xmin/ymin/xmax/ymax children
+                    if (!meta.bboxColumn && field.type.typeId === __ARROW_TYPE_STRUCT && field.type.children) {
+                        const childNames = field.type.children.map(function (c) { return c.name.toLowerCase(); });
+                        if (['xmin', 'ymin', 'xmax', 'ymax'].every(function (n) { return childNames.includes(n); })) {
+                            meta.bboxColumn = field.name;
+                        }
                     }
-                }
+                });
 
                 // geometry column: name heuristic (same list as __detectColumnTypes)
                 const geoNames = ['geometry', 'geom', 'the_geom', 'wkb_geometry', 'shape'];
