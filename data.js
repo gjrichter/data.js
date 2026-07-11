@@ -9259,6 +9259,22 @@ $Log:data.js,v $
     };
 
     /**
+     * alias for {@link "-_anonymous_-Data.Broker"#realize}, matching the `Data.feed(...).load(callback)` naming
+     * @param {function(Data.Table[])} callback called with an array of loaded Data.Table, one per addSource() call
+     * @type {Data.Broker}
+     * @returns the Data.Broker object
+     * @example
+     *	Data.provider()
+     *      .addSource("https://raw.githubusercontent.com/ondata/elezionipolitiche2018/master/dati/scrutiniCI_cm.csv","csv")
+     *      .addSource("https://raw.githubusercontent.com/ondata/elezionipolitiche2018/master/risorse/comuniViminaleISTAT.csv","csv")
+     *      .load(function(dataA) {
+     *          var scrutini                = dataA[0];
+     *          var comuniViminaleISTAT      = dataA[1];
+     *      });
+     */
+    Data.Broker.prototype.load = Data.Broker.prototype.realize;
+
+    /**
      * internal method to read parameter from the definition object
      * @method parseDefinition
      * @param definition the object literal with `data options`
