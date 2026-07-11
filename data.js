@@ -9604,6 +9604,21 @@ $Log:data.js,v $
         }
     };
 
+    /**
+     * alias for {@link "-_anonymous_-Data.Merger"#realize}, matching the `Data.merger().merge(callback)` naming
+     * @param {function(Data.Table)} callback called with the merged Data.Table
+     * @type {Data.Merger}
+     * @returns the Data.Merger object
+     * @example
+     *	Data.merger()
+     *      .addSource(prezzi,   { lookup: "idImpianto", columns: ["descCarburante", "prezzo"] })
+     *      .addSource(impianti, { lookup: "idImpianto", columns: ["Bandiera", "Latitudine", "Longitudine"] })
+     *      .merge(function(mergedTable) {
+     *          ...
+     *      });
+     */
+    Data.Merger.prototype.merge = Data.Merger.prototype.realize;
+
     // @factory Data.merger()
     // Instantiates a Data.Merger
     //
