@@ -4356,10 +4356,11 @@ $Log:data.js,v $
 
     /**
      * Arrow Type ids relevant to schema detection (see apache-arrow's Type enum).
-     * Used to read the schema off a "LIMIT 1" query result instead of running
+     * Used to read the schema off a "LIMIT 0" query result instead of running
      * DESCRIBE, which is dramatically slower on large remote files (DESCRIBE
-     * makes DuckDB gather per-row-group statistics across the whole file - a
-     * "LIMIT 1" query only has to touch the first row group).
+     * makes DuckDB gather per-row-group statistics across the whole file).
+     * "LIMIT 0" needs only the parquet footer - unlike "LIMIT 1", it never
+     * materializes any row/column data, so it stays cheap regardless of file size.
      */
     var __ARROW_TYPE_BINARY = 4;
     var __ARROW_TYPE_DECIMAL = 7;
@@ -4393,7 +4394,7 @@ $Log:data.js,v $
 
     /**
      * __probeRemoteParquetSchema
-     * Second stage of __probeRemoteParquet: schema (via a cheap "LIMIT 1" query,
+     * Second stage of __probeRemoteParquet: schema (via a cheap "LIMIT 0" query,
      * not DESCRIBE) + GeoParquet kv metadata.
      * @param szUrl remote parquet file url
      * @param opt options object
@@ -4406,7 +4407,7 @@ $Log:data.js,v $
         const safeUrl = szUrl.replace(/'/g, "''");
         const meta = { columns: [], columnTypes: {}, geometryColumn: null, bboxColumn: null, crs: null };
 
-        conn.query(`SELECT * FROM read_parquet('${safeUrl}') LIMIT 1`)
+        conn.query(`SELECT * FROM read_parquet('${safeUrl}') LIMIT 0`)
             .then(function (res) {
                 res.schema.fields.forEach(function (field) {
                     meta.columns.push(field.name);
