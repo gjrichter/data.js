@@ -4197,9 +4197,11 @@ $Log:data.js,v $
                 // Load the httpfs extension so read_parquet(url) does true HTTP range
                 // requests (footer + only the needed column/row-group byte ranges)
                 // instead of the default protocol handler's full-file download.
+                let httpfsLoaded = false;
                 try {
                     await conn.query("INSTALL httpfs;");
                     await conn.query("LOAD httpfs;");
+                    httpfsLoaded = true;
                     console.log("✅ httpfs extension loaded (enables ranged remote parquet reads)");
                 } catch (httpfsError) {
                     console.warn("⚠️ Could not load httpfs extension - remote parquet reads will fall back to full-file downloads:", httpfsError);
@@ -4210,7 +4212,8 @@ $Log:data.js,v $
                     module: duckdb,
                     worker: worker,
                     db: db,
-                    conn: conn
+                    conn: conn,
+                    httpfsLoaded: httpfsLoaded
                 };
                 window.duckdbLoaded = true;
             
@@ -4328,16 +4331,23 @@ $Log:data.js,v $
             return;
         }
 
-        // DuckDB WASM (32 bit) cannot address remote files >= 2 GB - it dies with an
-        // uncatchable wasm exception ('_setThrew is not defined') after a long stall,
-        // so check the file size up front and fail fast with a clear message.
+        // Without the httpfs extension, DuckDB WASM's default protocol handler downloads
+        // the entire remote file into memory before running any query - on files >= 2 GB
+        // this dies with an uncatchable wasm exception ('_setThrew is not defined') after
+        // a long stall. With httpfs loaded, reads are genuinely ranged (only the footer +
+        // needed row/column data), so large files work fine and this gate does not apply.
+        if (window.duckdb && window.duckdb.httpfsLoaded) {
+            __this.__probeRemoteParquetSchema(szUrl, opt, callback);
+            return;
+        }
+
         const MAX_REMOTE_BYTES = 2147483648; // 2^31
         fetch(szUrl, { method: 'HEAD' })
             .then(function (res) {
                 const size = Number(res.headers.get('content-length'));
                 if (isFinite(size) && size >= MAX_REMOTE_BYTES) {
                     const msg = "Remote parquet file is " + (size / 1073741824).toFixed(2) +
-                        " GB - DuckDB WASM cannot read remote files >= 2 GB; use a smaller partition of the data";
+                        " GB - DuckDB WASM cannot read remote files >= 2 GB without the httpfs extension; use a smaller partition of the data";
                     _LOG(msg);
                     if (opt && opt.error) {
                         opt.error(msg);
