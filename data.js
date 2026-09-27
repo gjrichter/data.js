@@ -6483,6 +6483,39 @@ $Log:data.js,v $
     };
 
     /**
+     * the spatial filter argument for flatgeobuf's deserialize(input, ...):
+     * 4.x (loaded from @latest when the pinned 3.x module fails) takes an
+     * options object with .rect, 3.x the rect itself — this object is both
+     * @param rect {minX, minY, maxX, maxY}
+     */
+    function __fgbRectArg(rect) {
+        return Object.assign({ rect: rect }, rect);
+    }
+    /**
+     * keeps the GeoJSON features whose geometry envelope intersects rect —
+     * flatgeobuf reads a stream sequentially and can't use its index there
+     * @param features GeoJSON features
+     * @param rect {minX, minY, maxX, maxY}
+     */
+    function __fgbFilterByRect(features, rect) {
+        return features.filter(function (f) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            (function walk(c) {
+                if (!Array.isArray(c)) return;
+                if (typeof c[0] === "number") {
+                    if (c[0] < minX) minX = c[0];
+                    if (c[0] > maxX) maxX = c[0];
+                    if (c[1] < minY) minY = c[1];
+                    if (c[1] > maxY) maxY = c[1];
+                    return;
+                }
+                c.forEach(walk);
+            })(f && f.geometry && (f.geometry.coordinates ||
+                (f.geometry.geometries || []).map(function (g) { return g.coordinates; })));
+            return minX <= rect.maxX && maxX >= rect.minX && minY <= rect.maxY && maxY >= rect.minY;
+        });
+    }
+    /**
      * __streamFlatGeobufWithLib
      * Streams FlatGeobuf data using HTTP Range Requests with spatial filtering
      * @param szUrl FlatGeobuf file url
@@ -6534,10 +6567,9 @@ $Log:data.js,v $
                         maxY: bbox[3]
                     };
                     
-                    // Use the FlatGeobuf library EXACTLY as in official examples
-                    // API: deserialize(url, rect, headerCallback?)
-                    // Third parameter is optional callback for header metadata, NOT custom fetch
-                    const iter = deserialize(szUrl, rect);
+                    // 3.x: deserialize(url, rect, headerCallback?), 4.x:
+                    // deserialize(url, {rect, ...}) — see __fgbRectArg
+                    const iter = deserialize(szUrl, __fgbRectArg(rect));
                     
                     // Iterate through features asynchronously
                     for await (const feature of iter) {
@@ -7031,31 +7063,20 @@ $Log:data.js,v $
             // The deserialize function returns an async iterator directly, not a Promise
             (async () => {
                 try {
-                    const features = [];
+                    let features = [];
                     
                     _LOG("Starting FlatGeobuf deserialization from ReadableStream...");
                     
                     // Iterate over features asynchronously
-                    // Pass bbox to deserialize for spatial filtering
-                    // Note: When using a stream from ArrayBuffer, the bbox filter is applied
-                    // during deserialization (reads R-tree from buffer), but the full file was already downloaded
-                    let featureIterator;
-                    if (bbox) {
-                        // Convert bbox array to rect object format that FlatGeobuf expects
-                        const rect = {
-                            minX: bbox[0],
-                            minY: bbox[1],
-                            maxX: bbox[2],
-                            maxY: bbox[3]
-                        };
-                        _LOG("Applying bbox filter to stream: " + JSON.stringify(rect));
-                        featureIterator = deserialize(stream, rect);
-                    } else {
-                        featureIterator = deserialize(stream);
-                    }
-                    
-                    for await (const feature of featureIterator) {
+                    // a stream is read in full (flatgeobuf can't use the R-tree
+                    // index there): the bbox is applied to the features afterwards
+                    const rect = bbox ? { minX: bbox[0], minY: bbox[1], maxX: bbox[2], maxY: bbox[3] } : null;
+                    for await (const feature of deserialize(stream)) {
                         features.push(feature);
+                    }
+                    if (rect) {
+                        _LOG("Applying bbox filter to features: " + JSON.stringify(rect));
+                        features = __fgbFilterByRect(features, rect);
                     }
                     
                     _LOG("Converted " + features.length + " features from FlatGeobuf");
