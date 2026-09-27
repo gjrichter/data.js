@@ -240,6 +240,23 @@ $Log:data.js,v $
     }
 
     /**
+     * true if root itself, or an element below it, has the local name —
+     * for the document-type checks: getElementsByTagNameNS only searches
+     * BELOW root, so a standard <kml>, <rss>, <feed> or
+     * <wfs:FeatureCollection> root was never found ("feed not kml")
+     * @param {Element} root
+     * @param {string} localName
+     * @returns {boolean}
+     */
+    function _isOrHasByLocalName(root, localName) {
+        if (!root) {
+            return false;
+        }
+        const own = root.localName || root.nodeName || '';
+        return own === localName || own.split(':').pop() === localName || _hasByLocalName(root, localName);
+    }
+
+    /**
      * @param {Element} el
      * @returns {Element[]}
      */
@@ -1820,13 +1837,16 @@ $Log:data.js,v $
         if (opt.format == "xml") {
             const root = _xmlRoot(data);
 
-            if (_hasByLocalName(root, 'rss')) {
+            if (_isOrHasByLocalName(root, 'rss')) {
                 this.__parseRSSData(data, opt);
             } else
-            if (_hasByLocalName(root, 'feed')) {
+            if (_isOrHasByLocalName(root, 'feed')) {
                 _alert("feed not yet supported");
+                if (opt && opt.error) {
+                    opt.error("feed not yet supported (Atom)");
+                }
             } else
-            if (_hasByLocalName(root, 'atom')) {
+            if (_isOrHasByLocalName(root, 'atom')) {
                 _alert("atom not yet supported");
             }
         }
@@ -1962,10 +1982,13 @@ $Log:data.js,v $
         if (opt.format == "xml") {
             const root = _xmlRoot(data);
 
-            if (_hasByLocalName(root, 'kml')) {
+            if (_isOrHasByLocalName(root, 'kml')) {
                 this.__parseKMLData(data, opt);
             } else {
                 _alert("feed not kml");
+                if (opt && opt.error) {
+                    opt.error("feed not kml");
+                }
             }
         }
     };
@@ -1976,55 +1999,131 @@ $Log:data.js,v $
      * @param opt optional options
      * @type void
      */
+    // KML geometry → GeoJSON geometry: Point, LineString, LinearRing,
+    // Polygon (outer + inner boundaries) and MultiGeometry (→ Multi* or
+    // GeometryCollection); coordinates "lon,lat[,alt]" tuples
+    function _kmlCoords(el) {
+        const c = el ? _findDescendant(el, 'coordinates') : null;
+        if (!c) {
+            return [];
+        }
+        return _elementText(c).trim().split(/\s+/).map(function (t) {
+            return t.split(',').slice(0, 2).map(Number);
+        }).filter(function (p) {
+            return p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]);
+        });
+    }
+
+    function _kmlGeometry(el) {
+        switch (el.localName) {
+        case 'Point': {
+            const c = _kmlCoords(el);
+            return c.length ? { type: 'Point', coordinates: c[0] } : null;
+        }
+        case 'LineString':
+        case 'LinearRing': {
+            const c = _kmlCoords(el);
+            return c.length > 1 ? { type: 'LineString', coordinates: c } : null;
+        }
+        case 'Polygon': {
+            const rings = [];
+            _elementChildren(el).forEach(function (b) {
+                if (b.localName === 'outerBoundaryIs' || b.localName === 'innerBoundaryIs') {
+                    const ring = _kmlCoords(b);
+                    if (ring.length > 2) {
+                        (b.localName === 'outerBoundaryIs') ? rings.unshift(ring) : rings.push(ring);
+                    }
+                }
+            });
+            return rings.length ? { type: 'Polygon', coordinates: rings } : null;
+        }
+        case 'MultiGeometry': {
+            const parts = _elementChildren(el).map(_kmlGeometry).filter(Boolean);
+            if (!parts.length) {
+                return null;
+            }
+            const t = parts[0].type;
+            if (parts.every(function (g) { return g.type === t; }) && (t === 'Point' || t === 'LineString' || t === 'Polygon')) {
+                return { type: 'Multi' + t, coordinates: parts.map(function (g) { return g.coordinates; }) };
+            }
+            return { type: 'GeometryCollection', geometries: parts };
+        }
+        default:
+            return null;
+        }
+    }
+
+    function _kmlPlacemarkGeometry(placemark) {
+        const kinds = ['MultiGeometry', 'Polygon', 'LineString', 'LinearRing', 'Point'];
+        const children = _elementChildren(placemark);
+        for (let i = 0; i < children.length; i++) {
+            if (kinds.indexOf(children[i].localName) >= 0) {
+                return _kmlGeometry(children[i]);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * __parseKMLData
+     * one row per Placemark: its ExtendedData <Data> values, name and
+     * description (unless an ExtendedData field has that name), 'KML.Point'
+     * (the raw Point coordinates text, as before) and 'geometry' — the
+     * GeoJSON geometry as a JSON string, as for the other geo formats. The
+     * header is the union over all Placemarks (they may differ).
+     * @param the kml object
+     * @param opt optional options
+     * @type void
+     */
     Data.Feed.prototype.__parseKMLData = function (data, opt) {
 
         const __this = this;
 
         if (opt.format == "xml") {
             const root = _xmlRoot(data);
-            const documentEl = _firstByLocalName(root, 'Document');
+            const placemarks = _elementsByLocalName(root, 'Placemark');
 
-            const dataA = [];
-            let childNamesA = null;
-
-            if (!documentEl) {
-                __this.__createDataTableObject(dataA, "kml", opt);
+            if (!placemarks.length) {
+                __this.__createDataTableObject([], "kml", opt);
                 return;
             }
 
-            const placemarks = _elementsByLocalName(documentEl, 'Placemark');
-
-            placemarks.forEach(function (placemark) {
-
+            const names = [];
+            const items = placemarks.map(function (placemark) {
                 const extendedData = _findDescendant(placemark, 'ExtendedData');
                 const xdata = extendedData || placemark;
-
-                // get item fieldnames from the first item of the channel
-                // ------------------------------------------------------
-                if (!childNamesA) {
-                    childNamesA = [];
-                    _elementsByLocalName(xdata, 'Data').forEach(function (dataEl) {
-                        childNamesA.push(_elementAttr(dataEl, "name"));
-                    });
-                    const point = _findDescendant(placemark, 'Point');
-                    if (point && _findDescendant(point, 'coordinates')) {
-                        childNamesA.push('KML.Point');
-                    }
-                    dataA.push(childNamesA);
-                }
-
-                // make one item values
-                const row = [];
+                const item = {};
                 _elementsByLocalName(xdata, 'Data').forEach(function (dataEl) {
-                    row.push(_elementText(_findDescendant(dataEl, 'value')));
+                    item[_elementAttr(dataEl, "name")] = _elementText(_findDescendant(dataEl, 'value'));
+                });
+                _elementChildren(placemark).forEach(function (child) {
+                    if ((child.localName === 'name' || child.localName === 'description') && !(child.localName in item)) {
+                        item[child.localName] = _elementText(child);
+                    }
                 });
                 const point = _findDescendant(placemark, 'Point');
                 const coordinates = point ? _findDescendant(point, 'coordinates') : null;
                 if (coordinates) {
-                    row.push(_elementText(coordinates));
+                    item['KML.Point'] = _elementText(coordinates);
                 }
-                dataA.push(row);
+                const geometry = _kmlPlacemarkGeometry(placemark);
+                if (geometry) {
+                    item.geometry = JSON.stringify(geometry);
+                }
+                Object.keys(item).forEach(function (k) {
+                    if (names.indexOf(k) < 0 && k !== 'geometry') {
+                        names.push(k);
+                    }
+                });
+                return item;
+            });
+            names.push('geometry');
 
+            const dataA = [names];
+            items.forEach(function (item) {
+                dataA.push(names.map(function (k) {
+                    return (k in item) ? item[k] : "";
+                }));
             });
 
             __this.__createDataTableObject(dataA, "kml", opt);
@@ -2047,10 +2146,13 @@ $Log:data.js,v $
                 data = _parseXML(data);
             }
             const root = _xmlRoot(data);
-            if (_hasByLocalName(root, 'FeatureCollection')) {
+            if (_isOrHasByLocalName(root, 'FeatureCollection')) {
                 this.__parseGMLData(data, opt);
             } else {
                 _alert("feed not gml");
+                if (opt && opt.error) {
+                    opt.error("feed not gml");
+                }
             }
         }
     };
@@ -2070,10 +2172,15 @@ $Log:data.js,v $
             const root = _xmlRoot(data);
 
             // Look for FeatureCollection (GML 3.x) or gml:FeatureCollection (GML 2.x)
-            const featureCollection = _firstByLocalName(root, 'FeatureCollection');
+            // — usually the root element itself, which a descendant search misses
+            const rootName = (root && (root.localName || root.nodeName) || '').split(':').pop();
+            const featureCollection = rootName === 'FeatureCollection' ? root : _firstByLocalName(root, 'FeatureCollection');
             
             if (!featureCollection) {
                 _alert("No FeatureCollection found in GML data");
+                if (opt && opt.error) {
+                    opt.error("No FeatureCollection found in GML data");
+                }
                 return;
             }
 
