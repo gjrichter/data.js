@@ -887,7 +887,10 @@ $Log:data.js,v $
      *								   reprojected with proj4js when needed.<br>
      *								   further options with bbox: <b>columns</b> (array of column names to select),
      *								   <b>crs</b> ("EPSG:nnnn" source CRS override), <b>proj4</b> (proj4 definition string),
-     *								   <b>maxRows</b> (abort with error when the bbox selects more rows)</td></tr>
+     *								   <b>maxRows</b> (abort with error when the bbox selects more rows)
+     *								   without bbox, <b>columns</b> (array of column names to select) restricts the loaded table
+     *								   to the requested columns (DuckDB projection pushdown - unrequested column chunks
+     *								   are neither scanned nor materialized)</td></tr>
      *								   <tr><td><b>"gpkg"</b></td><td>the source is a GeoPackage file (using DuckDB WASM spatial extension, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"flatgeobuf"</b> or <b>"fgb"</b></td><td>the source is a FlatGeobuf file (binary geospatial format, converted to GeoJSON)</td></tr>
      *								   <tr><td><b>"geobuf"</b> or <b>"pbf"</b></td><td>the source is a Geobuf file (Protocol Buffer geospatial format, converted to GeoJSON)</td></tr>
@@ -4142,6 +4145,23 @@ $Log:data.js,v $
         console.log("🔍 Starting GeoParquet detection with DuckDB WASM...");
         _LOG("Detecting if parquet file is GeoParquet...");
         
+        // If opt.columns explicitly requests a projection that does not include a
+        // geometry column, skip GeoParquet detection and use the regular SQL path:
+        // the user wants an attribute table, so the geometry/WKB conversion is not
+        // needed and opt.columns applies (selective column read via projection).
+        if (opt && Array.isArray(opt.columns) && opt.columns.length) {
+            const geometryRequested = opt.columns.some(function (c) {
+                const lower = String(c || '').toLowerCase();
+                return lower === 'geometry' || lower === 'geom' || lower === 'wkb_geometry' || lower === 'shape' || lower.includes('geom');
+            });
+            if (!geometryRequested) {
+                _LOG("opt.columns given without geometry column - skipping GeoParquet detection, using selective SQL path");
+                console.log("🎯 opt.columns without geometry - regular parquet processing with column projection");
+                __this.__processWithDuckDB(parquetBuffer, opt);
+                return;
+            }
+        }
+        
         // Use DuckDB to detect GeoParquet
         __this.__checkGeoParquetMetadataWithDuckDB(parquetBuffer, function(isGeoParquet) {
             console.log("🎯 GeoParquet detection result:", isGeoParquet);
@@ -4922,7 +4942,35 @@ $Log:data.js,v $
                     // Get schema first to determine column count for batch size optimization
                     const schemaQuery = `SELECT * FROM read_parquet('${tempFileName}') LIMIT 1`;
                     const schemaResult = await window.duckdb.conn.query(schemaQuery);
-                    const schema = schemaResult.schema;
+                    let schema = schemaResult.schema;
+
+                    // --- selective column read (opt.columns) ---
+                    // Restrict the SELECT list to the requested columns; this lets DuckDB
+                    // do projection pushdown, so unrequested column chunks are neither
+                    // scanned nor materialized (less memory, faster Arrow->JS conversion).
+                    const quoteIdent = function (name) { return '"' + String(name).replace(/"/g, '""') + '"'; };
+                    const schemaNames = schema.names || [];
+                    let selectList = '*';
+                    if (Array.isArray(opt && opt.columns) && opt.columns.length) {
+                        const colNames = opt.columns.filter(function (c) {
+                            if (schemaNames.includes(c)) {
+                                return true;
+                            }
+                            console.warn("⚠️ Requested column not in parquet schema, skipped: " + c);
+                            return false;
+                        });
+                        if (!colNames.length) {
+                            throw new Error("opt.columns: none of the requested columns [" + opt.columns.join(', ') + "] exist in the parquet file (available: " + schemaNames.join(', ') + ")");
+                        }
+                        selectList = colNames.map(quoteIdent).join(', ');
+                        _LOG("Selective column read: " + selectList);
+
+                        // re-read the schema restricted to the selected columns, so the
+                        // result schema (used below for the table header) matches the rows
+                        const restrictedSchema = await window.duckdb.conn.query(`SELECT ${selectList} FROM read_parquet('${tempFileName}') LIMIT 1`);
+                        schema = restrictedSchema.schema;
+                    }
+
                     const columnsCount = schema.names ? schema.names.length : 0;
                     
                     // Use original simple batch size approach
@@ -4942,7 +4990,7 @@ $Log:data.js,v $
                         console.log(`⚡ Loading batch ${batchNum + 1}/${numBatches} (rows ${offset.toLocaleString()}-${(offset + limit - 1).toLocaleString()})...`);
                         Data.log(`Loading batch ${batchNum + 1}/${numBatches}... (${Math.round((batchNum / numBatches) * 100)}%)`);
                         
-                        const batchQuery = `SELECT * FROM read_parquet('${tempFileName}') LIMIT ${limit} OFFSET ${offset}`;
+                        const batchQuery = `SELECT ${selectList} FROM read_parquet('${tempFileName}') LIMIT ${limit} OFFSET ${offset}`;
                         const batchResult = await window.duckdb.conn.query(batchQuery);
                         
                         // Add rows from this batch
